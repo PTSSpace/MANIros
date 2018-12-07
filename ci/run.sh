@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# install dependencies
+apt-get install -y i2c-tools
+
 # create workspace and load environment
 mkdir ~/catkin_ws
 ln -s /source ~/catkin_ws/src
