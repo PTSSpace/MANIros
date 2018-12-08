@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # install dependencies
+apt-get update
 apt-get install -y i2c-tools
 
 # create workspace and load environment
