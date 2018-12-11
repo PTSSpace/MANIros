@@ -2,7 +2,7 @@
 
 # install dependencies
 apt-get update
-apt-get install -y i2c-tools
+apt-get install -y i2c-tools libi2c-dev
 
 # create workspace and load environment
 mkdir ~/catkin_ws
