@@ -29,7 +29,7 @@ SOFTWARE.
 #include <JHPWMPCA9685.h>
 
 #include "ros/ros.h"
-#include "std_msgs/String.h"
+#include "maniros/MotorControl.h"
 
 // Calibrated for a Robot Geek RGS-13 Servo
 // Make sure these are appropriate for the servo being used!
@@ -59,16 +59,13 @@ void stop () {
   pca9685->closePCA9685();
 }
 
-void servoCallback (const std_msgs::String::ConstPtr& msg) {
-  ROS_INFO("I heard: [%s]", msg->data.c_str()); 
-
-  pca9685->setPWM(0,0,servoMin) ;
-  pca9685->setPWM(1,0,servoMin) ;
-
-  sleep(2);
-  pca9685->setPWM(0,0,servoMax) ;
-  pca9685->setPWM(1,0,map(90,0,180,servoMin, servoMax)) ;
-  sleep(2);
+void servoCallback (const maniros::MotorControl::ConstPtr& msg) {
+  ROS_INFO("Servo Controller: I heard %d %d %d %d", msg->front_right_angle, msg->front_left_angle, msg->rear_left_angle, msg->rear_right_angle);
+  
+  pca9685->setPWM(0,0,servoMin);
+  sleep(1);
+  pca9685->setPWM(0,0,servoMax);
+  sleep(1);
 }
 
 int main(int argc, char **argv) {
@@ -78,15 +75,15 @@ int main(int argc, char **argv) {
         printf("Error: %d", pca9685->error);
         pca9685->closePCA9685();
     } else {
-        printf("PCA9685 Device Address: 0x%02X\n",pca9685->kI2CAddress) ;
+        printf("PCA9685 Device Address: 0x%02X\n",pca9685->kI2CAddress);
         pca9685->setAllPWM(0,0);
         pca9685->reset();
         pca9685->setPWMFrequency(60);
 
-        ros::init(argc, argv, "servo");
+        ros::init(argc, argv, "servo_controller");
 
         ros::NodeHandle n;
-        ros::Subscriber sub = n.subscribe("servo", 1000, servoCallback);
+        ros::Subscriber sub = n.subscribe("motor_control", 1000, servoCallback);
 
         ros::spin();
     }

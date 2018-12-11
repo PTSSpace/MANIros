@@ -50,6 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
     FILES
     RoverControl.msg
+    MotorControl.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -114,12 +115,12 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
-  src/servo/vendor/
+  src/vendor/
 )
 
 ## Declare a C++ library
 add_library(JHPWMPCA9685
-  src/servo/vendor/JHPWMPCA9685.cpp
+  src/vendor/JHPWMPCA9685.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -131,9 +132,7 @@ add_library(JHPWMPCA9685
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/maniros_node.cpp)
-add_executable(servo src/servo/servo.cpp)
-add_executable(servo_test src/servo/servo_test.cpp)
-
+add_executable(servo_controller src/driving/controller/servo_controller.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -146,13 +145,9 @@ add_executable(servo_test src/servo/servo_test.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(servo
+target_link_libraries(servo_controller
    ${catkin_LIBRARIES}
   JHPWMPCA9685
-)
-
-target_link_libraries(servo_test
-   ${catkin_LIBRARIES}
 )
 
 #############
