@@ -9,8 +9,12 @@ source /opt/ros/kinetic/setup.bash
 
 # create workspace
 mkdir -p ~/catkin_ws/src
-ln -s /source ~/catkin_ws/src
 cd ~/catkin_ws
+catkin_make
+source ~/devel/setup.bash
+
+# link package
+ln -s /source ~/catkin_ws/src/maniros
 
 # build package
 catkin_make
