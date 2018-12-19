@@ -26,8 +26,8 @@ def translateRoverControl(data):
     #the front and back wheels (height) and (in regards to front: camera head position)
     #the left and right wheels (width) 
     
-    robot_height = 10
-    robot_width = 5
+    robot_height = rospy.get_param("/robot_height")
+    robot_width = rospy.get_param("/robot_width")
 
     #rotation, the scaled rotationDistance is multiplied with the width or height, returning a rotation component
     #this rotationWidthFactor = r_fac_x (as height is along the x axis)
@@ -65,7 +65,7 @@ def translateRoverControl(data):
         wheelSpeedArray.append(speedXY)
         
     
-    #normalize and 
+    #normalize velocities
 
     maxspeed = max(wheelSpeedArray)
     if maxspeed > 1:
