@@ -14,13 +14,8 @@ pwm = Adafruit_PCA9685.PCA9685(address=0x40, busnum=1)
 pwm.set_pwm_freq(60)
 
 def callback(data):
-    rospy.loginfo("Servo controller: I've heard fr:%d fl:%d rl:%d rr:%d. Moving Servos!" % (data.front_right_angle, data.front_left_angle, data.rear_left_angle, data.rear_right_angle));
-    
-    pwm.set_pwm(1, 0, rospy.get_param("/servo_controller/servo1_max"))
-    time.sleep(0.1)
-
-    pwm.set_pwm(1, 0, rospy.get_param("/servo_controller/servo1_max"))
-    time.sleep(0.1)
+    rospy.loginfo("Servo controller: I've heard fr:%d fl:%d rl:%d rr:%d. Moving Servos!" % (data.front_right_angle, data.front_left_angle, data.rear_left_angle, data.rear_right_angle)); 
+    pwm.set_pwm(0, 0, rospy.get_param("/servo_controller/servo1_min"))
 
 def listener():
     rospy.init_node("servo_controller", anonymous=True);
