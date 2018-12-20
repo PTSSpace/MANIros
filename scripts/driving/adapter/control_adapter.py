@@ -18,72 +18,58 @@ def listener():
     sub = rospy.Subscriber("rover_control", RoverControl, callback)
     rospy.spin()
 
-def translateRoverControl(data):
-    msg = MotorControl();
+def normalizeArray(array):
+    maxvalue = max(array)
+    if maxvalue > 1:
+        for index, value in enumerate(array):
+            array[index] = value / maxvalue
+    return array
 
-    #MISSING
-    #import some config file containing the wheel-center distance between 
-    #the front and back wheels (height) and (in regards to front: camera head position)
-    #the left and right wheels (width) 
-    
+def translateRoverControl(data):
+    msg = MotorControl()
+
     robot_height = rospy.get_param("/robot_height")
     robot_width = rospy.get_param("/robot_width")
 
     #rotation, the scaled rotationDistance is multiplied with the width or height, returning a rotation component
-    #this rotationWidthFactor = r_fac_x (as height is along the x axis)
-    #amd rotationHeightFactor = r_fac_y
-    r_fac_x = (robot_width * data.rotationDistance) / math.hypot(robot_width, robot_height)
-    r_fac_y = (robot_height * data.rotationDistance) / math.hypot(robot_width, robot_height)
+    #amd rotationHeightFactor = r_fac_x (as height is along the x axis)
+    #this rotationWidthFactor = r_fac_y
+    r_fac = data.rotationDistance / math.hypot(robot_width, robot_height)
+    r_fac_x = robot_height * r_fac
+    r_fac_y = robot_width * r_fac
     
-    wheelIndexArray = [1, 2, 3, 4] #see Motor Layout in KB for index, 1 = front-left then clockwise
-    wheelAngleArray = []
+    #wheelIndexArray = [1, 2, 3, 4] see Motor Layout in KB for index, 1 = front-left then clockwise
+    wheelIndexArray = ['front_left', 'rear_left', "rear_right", "front_right"]
     wheelSpeedArray = []
     
     # rotationFactor  + translation (the vector xDistance, yDistance) = finalVector
-    for wheel in wheelIndexArray:
-        
-        if 2 <= wheel <= 3: #assigns a positiv X Rotation to all rear wheels
-            calcX = r_fac_x + data.xDistance
-        else:
+    for index, wheel in enumerate(wheelIndexArray):
+        if index <= 1: #assigns a negativ X Rotation to all left wheels
             calcX = -r_fac_x + data.xDistance
-        if wheel <= 2: #assigns a negativ Y Rotation to all left wheels
+        else:
+            calcX = r_fac_x + data.xDistance
+        if 1 <= index <= 2: #assigns a negative Y Rotation to all rear wheels
             calcY = -r_fac_y + data.yDistance
         else:
-            calcY = r_fac_y + data.yDistance
-        
+            calcY= r_fac_y + data.yDistance
         
         angleXY = math.atan2(calcY, calcX)
         speedXY = math.hypot(calcX, calcY)
-        #MISSING -- could also be implementet on the servo side
+        #MISSING
         #reverse speed if necessary, need Implementation of WHEN an angle should be turned
-        # this has to be determined by the hardware orientation of the servo
+        #this has to be determined by the hardware orientation of the servo
         if math.fabs(angleXY) > (math.pi / 2): #this > (math.pi / 2) should be changed
             angleXY -= math.copysign(math.pi, angleXY)
             speedXY *= -1
         
-        wheelAngleArray.append(angleXY)
+        setattr(msg, '%s_angle' % wheel, angleXY)
         wheelSpeedArray.append(speedXY)
-        
-    
+
     #normalize velocities
-
-    maxspeed = max(wheelSpeedArray)
-    if maxspeed > 1:
-        for index, speed in enumerate(wheelSpeedArray):
-            wheelSpeedArray[index] = speed / maxspeed
+    normalizeArray(wheelSpeedArray)
     
-    
-    
-   
-    msg.front_left_angle = wheelAngleArray[0]
-    msg.rear_left_angle = wheelAngleArray[1]
-    msg.rear_right_angle = wheelAngleArray[2]
-    msg.front_right_angle = wheelAngleArray[3]
-
-    msg.front_left_speed = wheelSpeedArray[0]
-    msg.rear_left_speed = wheelSpeedArray[1]
-    msg.rear_right_speed = wheelSpeedArray[2]
-    msg.front_right_speed = wheelSpeedArray[3]
+    for index, wheel in enumerate(wheelIndexArray):
+        setattr(msg, '%s_speed' % wheel, wheelSpeedArray[index])
 
     return msg;
 

@@ -12,7 +12,7 @@ def talker():
     msg.mode = 0
     msg.xDistance = 0
     msg.yDistance = 0
-    msg.rotationDistance = 1
+    msg.rotationDistance = 2
     msg.time = 10
 
     while not rospy.is_shutdown():
