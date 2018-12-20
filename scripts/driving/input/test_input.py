@@ -10,7 +10,7 @@ def talker():
     msg = RoverControl()
     msg.sequenceCount = 1
     msg.mode = 0
-    msg.xDistance = 0
+    msg.xDistance = 100
     msg.yDistance = 0
     msg.rotationDistance = 2
     msg.time = 10
