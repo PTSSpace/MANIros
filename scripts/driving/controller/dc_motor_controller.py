@@ -4,6 +4,8 @@ import rospy
 from maniros.msg import MotorControl
 import time
 import atexit
+
+# This requires this library to be installed: https://github.com/adafruit/Adafruit-Motor-HAT-Python-Library
 from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor
 
 # recommended for auto-disabling motors on shutdown!
