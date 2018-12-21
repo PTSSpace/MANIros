@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-from __future__ import division
 import rospy
 from maniros.msg import MotorControl
-import time
 import atexit
 
 # This requires this library to be installed: https://github.com/adafruit/Adafruit-Motor-HAT-Python-Library
