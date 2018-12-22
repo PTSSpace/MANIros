@@ -9,10 +9,11 @@ pub = rospy.Publisher("motor_control", MotorControl, queue_size=10)
 def callback(data):
     rospy.loginfo("Adapter: I've heard x:%d y:%d rot:%d - translating..." % (data.xDistance, data.yDistance, data.rotationDistance));
     msg = translateRoverControl(data);
-    pub.publish(msg);
-    rospy.loginfo("Adapter: I've sent angles fl:%.3f rl:%.3f rr:%.3f fr:%.3f" % (msg.front_left_angle, msg.rear_left_angle, msg.rear_right_angle, msg.front_right_angle));
-    rospy.loginfo("Adapter: and velocities fl:%.3f rl:%.3f rr:%.3f fr:%.3f" % (msg.front_left_speed, msg.rear_left_speed, msg.rear_right_speed, msg.front_right_speed));
 
+    pub.publish(msg);
+    rospy.loginfo("Adapter: I've sent angles fl:%.3f rl:%.3f rr:%.3f fr:%.3f" % (msg.front_left_angle, msg.rear_left_angle, msg.rear_right_angle, msg.front_right_angle)); 
+    rospy.loginfo("Adapter: I've sent speeds fl:%.3f rl:%.3f rr:%.3f fr:%.3f" % (msg.front_left_speed, msg.rear_left_speed, msg.rear_right_speed, msg.front_right_speed)); 
+    
 def listener():
     rospy.init_node("control_adapter", anonymous=True);
     sub = rospy.Subscriber("rover_control", RoverControl, callback)
@@ -28,8 +29,8 @@ def normalizeArray(array):
 def translateRoverControl(data):
     msg = MotorControl()
 
-    robot_height = rospy.get_param("/robot_height")
-    robot_width = rospy.get_param("/robot_width")
+    robot_height = rospy.get_param("adapter/robot_height")
+    robot_width = rospy.get_param("adapter/robot_width")
 
     #rotation, the scaled rotationDistance is multiplied with the width or height, returning a rotation component
     #amd rotationHeightFactor = r_fac_x (as height is along the x axis)
