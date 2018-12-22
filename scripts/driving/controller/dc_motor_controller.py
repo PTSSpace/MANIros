@@ -5,7 +5,7 @@ import atexit
 
 # This requires this library to be installed: https://githjoub.com/adafruit/Adafruit-Motor-HAT-Python-Library
 from Adafruit_MotorHAT import Adafruit_MotorHAT
-from dc_motor import DCMotor
+from motor.dc_motor import DCMotor
 
 
 class DCMotorController:
