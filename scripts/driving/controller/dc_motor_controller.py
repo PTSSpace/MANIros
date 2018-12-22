@@ -39,10 +39,11 @@ class DCMotorController:
     def callback(self, data):
         """
         Called if data arrives. Commands the update of the speeds of all motors.
-        TODO: Check data integrity and whether the arrived data actually makes sense
 
         :param data: The received data
         """
+        assert isinstance(data, MotorControl)
+
         rospy.loginfo("DC controller: I've heard fl:%d rl:%d rr:%d fr:%d." % (
             data.front_left_speed,
             data.rear_left_speed,
