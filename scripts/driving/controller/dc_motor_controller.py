@@ -3,181 +3,160 @@ import rospy
 from maniros.msg import MotorControl
 import atexit
 
-# This requires this library to be installed: https://github.com/adafruit/Adafruit-Motor-HAT-Python-Library
-from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor
+# This requires this library to be installed: https://githjoub.com/adafruit/Adafruit-Motor-HAT-Python-Library
+from Adafruit_MotorHAT import Adafruit_MotorHAT
+from dc_motor import DCMotor
 
-# TODO: Add a seperate DC Motor Class
 
 class DCMotorController:
-    motorSlugs = ["front_left", "rear_left", "rear_right", "front_right"];
+    """
+    This class handles all DC motor control tasks
+    """
 
-    # Sets up all the motors
-    def __init__(self, maxSpeed):
-        self.maxSpeed = maxSpeed;
-        self.motors = [];
-        self.oldSpeeds = [0, 0, 0, 0];
-        self.newSpeeds = [0, 0, 0, 0];
-        self.motorStates = [False, False, False, False];
+    motor_names = ["front_left", "rear_left", "rear_right", "front_right"]
 
-        # create a default object, no changes to I2C address or frequency
-        mh = Adafruit_MotorHAT(addr=0x61, i2c_bus=0);
+    def __init__(self, max_speed):
+        """
+        Sets up all the motors
+        TODO: Discuss whether or not to use private variables
+
+        :param max_speed: The global maximum speed, as determined by the used motor hat library
+        """
+        self.max_speed = max_speed
+        self.motors = []
+
+        mh = Adafruit_MotorHAT(addr=0x61, i2c_bus=0)
+
+        # Store all 4 motor objects
+        for i in range(1, 5):
+            self.motors.append(
+                DCMotor(mh.getMotor(i), self.get_motor_name(i - 1))
+            )
 
         # Turn off motors at shutdown
-        atexit.register(self.turnOffMotors);
+        atexit.register(self.turn_off_motors)
 
-        # Select all 4 motors
-        for i in xrange(1, 5):
-            self.motors.append(mh.getMotor(i)); # the motor numbering on the motor boards starts at 1
-
-
-    # Gets called if data arrives
     def callback(self, data):
-        rospy.loginfo("DC controller: I've heard fl:%d rl:%d rr:%d fr:%d." % (data.front_left_speed, data.rear_left_speed, data.rear_right_speed, data.front_right_speed)); 
-        self.updateSpeeds(data);
+        """
+        Called if data arrives. Commands the update of the speeds of all motors.
+        TODO: Check data integrity and whether the arrived data actually makes sense
 
+        :param data: The received data
+        """
+        rospy.loginfo("DC controller: I've heard fl:%d rl:%d rr:%d fr:%d." % (
+            data.front_left_speed,
+            data.rear_left_speed,
+            data.rear_right_speed,
+            data.front_right_speed
+        ))
 
-    # Declares the controller as a subscriber
+        new_speeds = self.decode_speeds(data)
+        self.update_speeds(new_speeds)
+
     def listener(self):
-        rospy.Subscriber("motor_control", MotorControl, self.callback);
+        """
+        Declares this controller as a subscriber
+        """
+        rospy.Subscriber("motor_control", MotorControl, self.callback)
 
+    def map_speed(self, speed):
+        """
+        Maps a float[0..1] to an int[0..255]
 
-    # recommended for auto-disabling motors on shutdown!
-    def turnOffMotors(self):
-        for i in xrange(0, 4):
-            self.turnOffMotor(i);
+        :param speed: The speed that shall be mapped
+        :return: The mapped speed value
+        """
+        return int(speed * self.max_speed)
 
+    def decode_speeds(self, data):
+        """
+        Translates the received MotorControl message into an array
+        TODO: Discuss whether we should actually send such an array in the message, instead of separate named values
 
-    # Turns off a specific dc motor
-    def turnOffMotor(self, id):
-        # Only turn off, if it is on
-        if(self.isOn(id)):
-            self.motors[id].run(Adafruit_MotorHAT.RELEASE);
-            self.setMotorState(id, False);
+        :param data: The received MotorControl message
+        :return: The generated array containing the new speeds
+        """
+        new_speeds = []
+        for i in range(0, len(self.motors)):
+            new_speed = getattr(data, "%s_speed" % DCMotorController.get_motor_name(i))
+            new_speeds.append(new_speed)
 
+        return new_speeds
 
-    # Determines whether a motor is off
-    def isOn(self, id):
-        return self.motorStates[id];
+    def ramp_speed(self, num, new_speed):
+        """
+        Implements a smooth ramp up/down function, e.g. by using a sinoid
+        TODO: implement actual ramp-up function. Using a mocking function for now.
 
+        :param num: The
+        :param new_speed:
+        :return:
+        """
+        self.motors[num].set_speed(new_speed)
 
-    # Determines whether a motor is on
-    def isOff(self, id):
-        return not self.isOn(id);
+    def update_speeds(self, new_speeds):
+        """
+        Updates the speeds of all motors
 
+        :param new_speeds: The array containing the new speeds
+        """
+        for i in range(0, len(self.motors)):
+            new_speed = new_speeds[i]
+            new_speed = self.map_speed(new_speed)
 
-    # Determines whether a motor should drive forwards
-    def shouldDriveForwards(self, id):
-        return self.newSpeeds[id] > 0
+            # Check whether there is anything to change
+            if new_speed != self.get_speed(i):
+                self.set_speed(i, new_speed)
+                rospy.loginfo("DC controller: Updated speed of %s motor to %d" % (
+                    self.motors[i].name,
+                    self.motors[i].speed
+                ))
 
-    
-    # Determines whether a motor should drive backwards
-    def shouldDriveBackwards(self, id):
-        return self.newSpeeds[id] < 0;
+    def turn_off_motors(self):
+        """
+        Turns off all motors
+        """
+        for i in range(0, len(self.motors)):
+            self.turn_off(i)
 
+    def turn_off(self, num):
+        """
+        Turns of a specific motor
 
-    # Lets a motor drive forwards
-    def driveForwards(self, id):
-        self.motors[id].run(Adafruit_MotorHAT.FORWARD);
-        self.setMotorState(id, True);
+        :param num: The number of the motor that shall be turned off
+        """
+        self.motors[num].turn_off()
 
+    def set_speed(self, num, new_speed):
+        """
+        Sets the speed of a motor
 
-    # Lets a motor drive backwards
-    def driveBackwards(self, id):
-        self.motors[id].run(Adafruit_MotorHAT.BACKWARD);
-        self.setMotorState(id, True);
+        :param num: The number of the motor
+        :param new_speed: The new speed
+        """
+        assert -self.max_speed <= new_speed <= self.max_speed, "Invalid Speed Value!"
+        self.ramp_speed(num, new_speed)
 
+    def get_speed(self, num):
+        """
+        Returns the speed of a motor
 
-    # Maps a float[0..1] to an int[0..255]
-    def mapSpeed(self, speed):
-        return int(speed * self.getMaxSpeed());
+        :param num: The number of the motor
+        """
+        return self.motors[num].speed
 
-
-    # implements a smooth ramp up function, e.g. by using a sinoid
-    def rampUp(self, id, oldSpeed, newSpeed):
-        # TODO: implement actual ramp-up function. Using a mocking function for now.
-        self.motors[id].setSpeed(newspeed);
-
-
-    # updates all speed values
-    def saveNewSpeeds(self, data):
-        # Make copy of the values of the 
-        self.oldSpeeds = self.newSpeeds[:];
-
-        for i in xrange(0, 4):
-            self.newSpeeds[i] = self.mapSpeed(self.getSingleSpeedById(i, data));
-
-
-    # Sets each motor to the correct new direction
-    def updateDirections(self):
-        for i in xrange(0, 4):
-            if self.shouldDriveForwards(i):
-                self.driveForwards(i);
-            elif self.shouldDriveBackwards(i):
-                self.driveBackwards(i);
-            else:
-                self.turnOffMotor(i);
-
-
-    # Sets the new speed of all motors
-    def updateSpeeds(self, data):
-        self.saveNewSpeeds(data);
-        self.updateDirections();
-        
-        for i in xrange(0, 4):
-            if(self.speedChanged(i)):
-                self.setSpeed(i, self.getNewSpeed(i));
-                rospy.loginfo("DC controller: Updated speed of %s motor to %d" % (DCMotorController.getMotorSlug(i), self.getNewSpeed(i)));
-
-
-    # Checks whether the speed has actually changed
-    def speedChanged(self, id):
-        return self.getOldSpeed(id) != self.getNewSpeed(id);
-
-
-    # Sets the speed of
-    def setSpeed(self, id, speed):
-        assert -(self.getMaxSpeed()) <= speed <= self.getMaxSpeed(), "Invalid Speed Value!";
-        self.motors[id].setSpeed(speed);
-
-
-    # Sets a motors state
-    def setMotorState(self, id, value):
-        assert isinstance(value, bool), "State is not a boolean!";
-        self.motorStates[id] = value;
-
-
-    # Gets the old speed of a motor
-    def getOldSpeed(self, id):
-        return self.oldSpeeds[id];
-
-
-    # Gets the new speed of a motor
-    def getNewSpeed(self, id):
-        return self.newSpeeds[id];
-
-
-    # Gets the global max speed
-    def getMaxSpeed(self):
-        return self.maxSpeed;
-
-
-    # Returns the speed of a motor by its id
-    @staticmethod
-    def getSingleSpeedById(id, data):
-        assert 0 <= id <= 3, "Invalid Motor ID!";
-        return getattr(data, "%s_speed" % DCMotorController.getMotorSlug(id));
-
-
-    # Returns the slug of a specific motor
     @classmethod
-    def getMotorSlug(cls, id): # class methods need a class as second param
-        return cls.motorSlugs[id];
+    def get_motor_name(cls, num):
+        """
+        Returns the name of a motor
 
+        :param num: The motor number
+        """
+        return cls.motor_names[num]
 
 
 if __name__ == '__main__':
-    rospy.init_node("dc_controller", anonymous=True);
-    maxSpeed = rospy.get_param("/dc_controller/max_speed");
-    dcController = DCMotorController(maxSpeed);
-    dcController.listener();
+    rospy.init_node("dc_controller", anonymous=True)
+    dc_controller = DCMotorController(rospy.get_param("/dc_controller/max_speed"))
+    dc_controller.listener()
     rospy.spin()
