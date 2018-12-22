@@ -135,6 +135,7 @@ class DCMotorController:
         :param new_speed: The new speed
         """
         assert -self.max_speed <= new_speed <= self.max_speed, "Invalid Speed Value!"
+
         self.ramp_speed(num, new_speed)
 
     def get_speed(self, num):

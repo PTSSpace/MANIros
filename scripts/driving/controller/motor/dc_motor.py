@@ -18,6 +18,8 @@ class DCMotor:
         :param motor: The adapted Adafruit_DCMotor motor object
         :param name: The name of the motor
         """
+        assert isinstance(motor, Adafruit_DCMotor) and isinstance(name, str)
+
         self.motor = motor
         self.name = name
         self.speed = 0
@@ -40,16 +42,6 @@ class DCMotor:
         self.motor.setSpeed(new_speed)
         self.speed = new_speed
 
-    def set_state(self, state):
-        """
-        Sets the motors state
-
-        :param state: The new motor state
-        """
-        if self.state != state:
-            self.motor.run(state)
-            self.state = state
-
     def set_direction(self, new_speed):
         """
         Sets the motors direction
@@ -62,3 +54,25 @@ class DCMotor:
             self.set_state(DCMotor.BACKWARDS)
         else:
             self.set_state(DCMotor.OFF)
+
+    def set_state(self, state):
+        """
+        Sets the motors state
+
+        :param state: The new motor state
+        """
+        assert self.is_state_valid(state)
+
+        if self.state != state:
+            self.motor.run(state)
+            self.state = state
+
+    @staticmethod
+    def is_state_valid(state):
+        """
+        Checks whether a given state is valid
+
+        :param state: The state to be checked
+        :return: True if valid
+        """
+        return state in [DCMotor.FORWARDS, DCMotor.BACKWARDS, DCMotor.OFF]
