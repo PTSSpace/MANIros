@@ -23,20 +23,20 @@ class DCMotor:
         self.speed = 0
         self.state = DCMotor.OFF
 
+    def turn_off(self):
+        """
+        Turns off the motor
+        """
+        self.set_state(DCMotor.OFF)
+
     def set_speed(self, new_speed):
         """
-        Sets the speed of a motor
+        Sets the speed of the motor
         TODO: Convert speed to a python property
 
         :param new_speed: The new speed of the motor
         """
-        if new_speed > 0:
-            self.set_state(DCMotor.FORWARDS)
-        elif new_speed < 0:
-            self.set_state(DCMotor.BACKWARDS)
-        else:
-            self.set_state(DCMotor.OFF)
-
+        self.set_direction(new_speed)
         self.motor.setSpeed(new_speed)
         self.speed = new_speed
 
@@ -50,8 +50,15 @@ class DCMotor:
             self.motor.run(state)
             self.state = state
 
-    def turn_off(self):
+    def set_direction(self, new_speed):
         """
-        Turns off the motor
+        Sets the motors direction
+
+        :param new_speed: The new speed that will imply the direction
         """
-        self.set_state(DCMotor.OFF)
+        if new_speed > 0:
+            self.set_state(DCMotor.FORWARDS)
+        elif new_speed < 0:
+            self.set_state(DCMotor.BACKWARDS)
+        else:
+            self.set_state(DCMotor.OFF)
