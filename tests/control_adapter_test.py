@@ -10,6 +10,7 @@ from maniros.msg import MotorControl
 class ControlAdapterTest(unittest.TestCase):
     def __init__(self, *args):
         super(ControlAdapterTest, self).__init__(*args)
+        rospy.wait_for_service('rover_control')
         rospy.init_node("test_input", anonymous=True)
         self.pub = rospy.Publisher("rover_control", RoverControl, queue_size=10)
         rospy.Subscriber("motor_control", MotorControl, self.callback)
@@ -44,4 +45,4 @@ class ControlAdapterTest(unittest.TestCase):
         self.assertTrue(self.success, 'Callback has not been called')
 
 if __name__ == '__main__':
-    rostest.rosrun('maniros', 'test_basic_node_actions', ControlAdapterTest)
+    rostest.rosrun('maniros', 'test_control_adapter', ControlAdapterTest)
