@@ -4,4 +4,5 @@
         <param name="robot_width" type="int" value="30" />
   </node>
 
+  <test test-name="controler_adapter_test" pkg="maniros" type="control_adapter_test.py" />
 </launch>
