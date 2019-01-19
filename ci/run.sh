@@ -14,7 +14,7 @@ catkin_make
 source ~/devel/setup.bash
 
 # link package
-ln -s /source ~/catkin_ws/src/maniros
+ln -s /source/MANIros ~/catkin_ws/src/maniros
 
 # build package
 catkin_make
