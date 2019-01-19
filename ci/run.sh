@@ -19,3 +19,8 @@ ln -s /source ~/catkin_ws/src/maniros
 # build package
 catkin_make
 
+source ~/catkin_ws/devel/setup.bash
+
+# run tests
+./src/maniros/tests/run.sh
+

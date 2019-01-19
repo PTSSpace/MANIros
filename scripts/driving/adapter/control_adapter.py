@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+
 import rospy
+import math
+
 from maniros.msg import RoverControl
 from maniros.msg import MotorControl
-import math
 
 pub = rospy.Publisher("motor_control", MotorControl, queue_size=10)
 
@@ -15,7 +17,7 @@ def callback(data):
     rospy.loginfo("Adapter: I've sent speeds fl:%.3f rl:%.3f rr:%.3f fr:%.3f" % (msg.front_left_speed, msg.rear_left_speed, msg.rear_right_speed, msg.front_right_speed)); 
     
 def listener():
-    rospy.init_node("control_adapter", anonymous=True);
+    rospy.init_node("control_adapter", anonymous=True)
     sub = rospy.Subscriber("rover_control", RoverControl, callback)
     rospy.spin()
 
@@ -75,4 +77,4 @@ def translateRoverControl(data):
     return msg;
 
 if __name__ == '__main__':
-    listener();
+    listener()

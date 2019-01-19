@@ -1,0 +1,8 @@
+<launch>
+  <node name="adapter" pkg="maniros" type="control_adapter.py" output="screen">
+    <param name="robot_height" type="int" value="15" />
+    <param name="robot_width" type="int" value="30" />
+  </node>
+
+  <test test-name="controler_adapter_test" pkg="maniros" type="control_adapter_test.py"/>
+</launch>
