@@ -14,10 +14,12 @@ catkin_make
 source ~/devel/setup.bash
 
 # link package
-ln -s /source/MANIros ~/catkin_ws/src/maniros
+ln -s /source ~/catkin_ws/src/maniros
 
 # build package
 catkin_make
+
+source ~/catkin_ws/devel/setup.bash
 
 # run tests
 ./src/maniros/tests/run.sh
