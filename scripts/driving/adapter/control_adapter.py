@@ -22,7 +22,7 @@ def listener():
     rospy.spin()
 
 def normalizeArray(array):
-    maxvalue = max(array)
+    maxvalue = abs(max(array, key=abs))
     if maxvalue > 1:
         for index, value in enumerate(array):
             array[index] = value / maxvalue
@@ -31,8 +31,8 @@ def normalizeArray(array):
 def translateRoverControl(data):
     msg = MotorControl()
 
-    robot_height = rospy.get_param("adapter/robot_height")
-    robot_width = rospy.get_param("adapter/robot_width")
+    robot_height = rospy.get_param("control_adapter/robot_height")
+    robot_width = rospy.get_param("control_adapter/robot_width")
 
     #rotation, the scaled rotationDistance is multiplied with the width or height, returning a rotation component
     #amd rotationHeightFactor = r_fac_x (as height is along the x axis)
