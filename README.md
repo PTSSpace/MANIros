@@ -17,20 +17,26 @@ ones for new features, it can be reviewed and merged into master.
 
 The Arduino needs the ros_lib library, including the custom message header.
 
-If you installed the Arduino IDE a sketchbok folder already exists, otherwise create sketchbook/libraries in your homefolder.
+If you installed the Arduino IDE a sketchbok folder already exists, otherwise create `sketchbook/libraries` in your homefolder.
 
 Then run
 
-  cd catkin_ws && source devel/setup.sh
-  rm -rf </home/nvidia/>sketchbook/libraries/ros_lib
-  rosrun rosserial_arduino make_libraries.py </home/nvidia/>sketchbook/libraries
+```
+cd catkin_ws && source devel/setup.sh
+rm -rf </home/nvidia/>sketchbook/libraries/ros_lib
+rosrun rosserial_arduino make_libraries.py </home/nvidia/>sketchbook/libraries
+```
+
 
 You also need to change the path in maniros/arduino_firmware/motor_driver.cpp
 in line 3 to match your path to the ros_lib
 
-Change the BOARD and PORT in maniros/arduino_firmware/CMakeLists.txt to reflect your Arduino Board and USB Port.
+Change the BOARD and PORT in `maniros/arduino_firmware/CMakeLists.txt` to reflect your Arduino Board and USB Port.
 
 To upload a sketch, run:
 
-  catkin_make
-  catkin_make maniros_arduino_firmware_motor_driver_nano-upload
+```
+catkin_make
+catkin_make maniros_arduino_firmware_motor_driver_nano-upload
+```
+
