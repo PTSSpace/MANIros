@@ -28,7 +28,7 @@ rosrun rosserial_arduino make_libraries.py </home/nvidia/>sketchbook/libraries
 ```
 
 
-You also need to change the path in maniros/arduino_firmware/motor_driver.cpp
+You also need to change the path in `maniros/arduino_firmware/motor_driver.cpp`
 in line 3 to match your path to the ros_lib
 
 Change the BOARD and PORT in `maniros/arduino_firmware/CMakeLists.txt` to reflect your Arduino Board and USB Port.
