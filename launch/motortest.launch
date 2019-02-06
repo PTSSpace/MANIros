@@ -1,6 +1,6 @@
 <launch>
     <node name="input" pkg="maniros" type="test_input.py" output="screen"/>
-    <node name="adapter" pkg="maniros" type="control_adapter.py" output="screen">
+    <node name="control_adapter" pkg="maniros" type="control_adapter.py" output="screen">
         <param name="robot_height" type="int" value="15" />
         <param name="robot_width" type="int" value="30" />
     </node>
