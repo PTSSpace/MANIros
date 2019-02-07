@@ -9,9 +9,9 @@ from driving.adapter.vector_protocol.vector_protocol import VectorTranslation
 
 class CaseNormalize(unittest.TestCase):
 
-    def __init__(self, testName, extraArg):
+    def __init__(self, testName, case):
         super(CaseNormalize, self).__init__(testName)
-        self.case = extraArg
+        self.case = case
 
     def setUp(self):
         self.vt = VectorTranslation(0, 0)
@@ -25,9 +25,9 @@ class CaseNormalize(unittest.TestCase):
 
 class CaseRotationFactor(unittest.TestCase):
 
-    def __init__(self, testName, extraArg):
+    def __init__(self, testName, case):
         super(CaseRotationFactor, self).__init__(testName)
-        self.case = extraArg
+        self.case = case
 
     def setUp(self):
         self.vt = VectorTranslation(0, 0)
@@ -47,9 +47,9 @@ class CaseRotationFactor(unittest.TestCase):
 
 
     
-class MyTestSuite(unittest.TestSuite):
+class VectorProtocolTestSuite(unittest.TestSuite):
     def __init__(self):
-        super(MyTestSuite, self).__init__()
+        super(VectorProtocolTestSuite, self).__init__()
 
         normalize_cases = [
             [[0, 0, 0, 0], [0, 0, 0, 0]],
@@ -65,7 +65,11 @@ class MyTestSuite(unittest.TestSuite):
         ]
         for case in rotation_cases:
             self.addTest(CaseRotationFactor('case_rotation_factor', case))
+    
+    @classmethod
+    def setUpClass(cls):
+        cls.vt = VectorTranslation(0, 0)
 
 if __name__ == '__main__':
-    rostest.rosrun('maniros', 'suite_test', 'unit_suite.MyTestSuite')
+    rostest.rosrun('maniros', 'suite_test', 'unit_suite.VectorProtocolTestSuite')
 
