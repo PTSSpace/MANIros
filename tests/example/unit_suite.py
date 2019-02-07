@@ -7,47 +7,65 @@ import rospy
 from driving.adapter.vector_protocol.vector_protocol import VectorTranslation
 # NOT from maniros.scripts.driving.adapter.vector_protocol.vector_protocol import VectorTranslation
 
-class TestVectorProtocol(unittest.TestCase):
+class CaseNormalize(unittest.TestCase):
 
-    # @classmethod
-    # def setUpClass(cls):
-    #     cls.vt = VectorTranslation(0, 0)
+    def __init__(self, testName, extraArg):
+        super(CaseNormalize, self).__init__(testName)
+        self.case = extraArg
 
     def setUp(self):
         self.vt = VectorTranslation(0, 0)
-    
-    # def tearDown(self):
-    #     pass
 
-    def test_normalize(self):
-        cases = [
-            [[0, 0, 0, 0], [0, 0, 0, 0]],
-            [[1.0, 0.5, -0.1, 0.2], [1.0, 0.5, -0.1, 0.2]],
-            [[10.0, 20.0, 40.0, 80.0], [0.125, 0.25, 0.5, 1]]
-        ]
-        for case in cases:
-            self.assertListEqual(self.vt.normalizeArray(case[0]), case[1])
+    def case_normalize(self):
+        '''
+        Tests the normalizeArray function
+        case = [input: [array], expected_output: [array]]
+        '''
+        self.assertListEqual(self.vt.normalizeArray(self.case[0]), self.case[1])
 
-    def test_rotation_factor(self):
+class CaseRotationFactor(unittest.TestCase):
+
+    def __init__(self, testName, extraArg):
+        super(CaseRotationFactor, self).__init__(testName)
+        self.case = extraArg
+
+    def setUp(self):
+        self.vt = VectorTranslation(0, 0)
+        
+    def case_rotation_factor(self):
         '''
         Tests the calculateRotationFactor function
         case = [param: [height, width], input: rotation, expected_output: [r_fac, r_fac_x, r_fac_y]]
         '''
-        cases = [
+        self.vt.robot_height = self.case[0][0]
+        self.vt.robot_width = self.case[0][1]
+        self.vt.calculateRotationFactor(self.case[1])
+        
+        self.assertEqual(self.vt.r_fac, self.case[2][0])
+        self.assertEqual(self.vt.r_fac_x, self.case[2][1])
+        self.assertEqual(self.vt.r_fac_y, self.case[2][2])
+
+
+    
+class MyTestSuite(unittest.TestSuite):
+    def __init__(self):
+        super(MyTestSuite, self).__init__()
+
+        normalize_cases = [
+            [[0, 0, 0, 0], [0, 0, 0, 0]],
+            [[1.0, 0.5, -0.1, 0.2], [1.0, 0.5, -0.1, 0.2]],
+            [[10.0, 20.0, 40.0, 80.0], [0.125, 0.25, 0.5, 1]]
+        ]
+        for case in normalize_cases:
+            self.addTest(CaseNormalize('case_normalize', case))
+
+        rotation_cases = [
             [[3, 4], 0, [0, 0, 0]],
             [[3, 4], 1, [0.2, 0.6, 0.8]],
         ]
-        for case in cases:
-            self.vt.robot_height = case[0][0]
-            self.vt.robot_width = case[0][1]
-            self.vt.calculateRotationFactor(case[1])
-            
-            self.assertEqual(self.vt.r_fac, case[2][0])
-            self.assertEqual(self.vt.r_fac_x, case[2][1])
-            self.assertEqual(self.vt.r_fac_y, case[2][2])
-        
-    
+        for case in rotation_cases:
+            self.addTest(CaseRotationFactor('case_rotation_factor', case))
 
 if __name__ == '__main__':
-    rostest.rosrun('maniros', 'vector_test', TestVectorProtocol)
+    rostest.rosrun('maniros', 'suite_test', 'unit_suite.MyTestSuite')
 
