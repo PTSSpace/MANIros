@@ -18,7 +18,7 @@ def callback(data):
     abort.angular.z = 0
     if (data.buttons[5]):
 	deadman = 1
-        rospy.loginfo("Input: Deadman switch is:%d" % deadman);
+        rospy.loginfo("Input: Deadman switch is:%d" % deadman); 
         pub.publish(twist)
         rospy.loginfo("Input: I've sent x:%f y:%f rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z));
 
