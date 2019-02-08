@@ -3,6 +3,10 @@
     <node name="control_adapter" pkg="maniros" type="control_adapter.py" output="screen">
         <param name="robot_height" type="int" value="15" />
         <param name="robot_width" type="int" value="30" />
+        <param name="offset_fl" type="double" value="0" />
+        <param name="offset_rl" type="double" value="0" />
+        <param name="offset_rr" type="double" value="0" />
+        <param name="offset_fr" type="double" value="0" />    
     </node>
     <node name="servo_controller" pkg="maniros" type="servo_motor_controller.py" >
         <param name="servo1_min" type="int" value="150" />

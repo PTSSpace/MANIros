@@ -1,7 +1,11 @@
 <launch>
   <node name="control_adapter" pkg="maniros" type="control_adapter.py" output="screen">
-    <param name="robot_height" type="int" value="15" />
-    <param name="robot_width" type="int" value="30" />
+    <param name="robot_height" type="int" value="1" />
+    <param name="robot_width" type="int" value="1" />
+    <param name="offset_fl" type="double" value="1.571" />
+    <param name="offset_rl" type="double" value="1.571" />
+    <param name="offset_rr" type="double" value="1.571" />
+    <param name="offset_fr" type="double" value="1.571" />
   </node>
 
   <test test-name="controler_adapter_test" pkg="maniros" type="control_adapter_test.py"/>
