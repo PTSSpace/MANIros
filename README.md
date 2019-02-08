@@ -23,8 +23,8 @@ Then run
 
 ```
 cd catkin_ws && source devel/setup.sh
-rm -rf </home/nvidia/>sketchbook/libraries/ros_lib
-rosrun rosserial_arduino make_libraries.py </home/nvidia/>sketchbook/libraries
+rm -rf </home/ubuntu/>sketchbook/libraries/ros_lib
+rosrun rosserial_arduino make_libraries.py </home/ubuntu/>sketchbook/libraries
 ```
 
 
