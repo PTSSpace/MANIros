@@ -1,6 +1,5 @@
 #!/usr/bin/env python  
 import rospy
-import tf
 import tf2_ros
 import geometry_msgs.msg
 
@@ -14,23 +13,23 @@ if __name__ == '__main__':
 
     # Generate transformation message
     br = tf2_ros.StaticTransformBroadcaster()
-    tf = geometry_msgs.msg.TransformStamped()
+    stfS = geometry_msgs.msg.TransformStamped()
 
-    tf.header.stamp = rospy.Time.now()
-    tf.header.frame_id = "base_link"
-    tf.child_frame_id = imu_name
+    stfS.header.stamp = rospy.Time.now()
+    stfS.header.frame_id = "base_link"
+    stfS.child_frame_id = imu_name
 
     # Assign transformation
     # Translation
-    tf.transform.translation.x = imuX
-    tf.transform.translation.y = imuY
-    tf.transform.translation.z = imuZ
+    stfS.transform.translation.x = imuX
+    stfS.transform.translation.y = imuY
+    stfS.transform.translation.z = imuZ
     # Quaternion
-    tf.transform.rotation.x = 0.0
-    tf.transform.rotation.y = 0.0
-    tf.transform.rotation.z = 0.0
-    tf.transform.rotation.w = 1.0
+    stfS.transform.rotation.x = 0.0
+    stfS.transform.rotation.y = 0.0
+    stfS.transform.rotation.z = 0.0
+    stfS.transform.rotation.w = 1.0
 
     # Broadcast
-    br.sendTransform(tf)
+    br.sendTransform(stfS)
     rospy.spin()
