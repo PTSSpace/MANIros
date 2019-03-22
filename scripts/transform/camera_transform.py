@@ -10,29 +10,29 @@ def handle_camera_pose(msg, camera_name):
 
     # Generate transformation message
     br = tf2_ros.TransformBroadcaster()
-    tf = geometry_msgs.msg.TransformStamped()
+    tfS = geometry_msgs.msg.TransformStamped()
 
-    tf.header.stamp = rospy.Time.now()
-    tf.header.frame_id = "base_link"
-    tf.child_frame_id = camera_name
+    tfS.header.stamp = rospy.Time.now()
+    tfS.header.frame_id = "base_link"
+    tfS.child_frame_id = camera_name
 
     # Calculate position according to camera head orientation
     a = sin(radians(msg.pitch)) * cameraO
 
     # Assign transformation
     # Translation
-    tf.transform.translation.x = camera_headX + sin(radians(msg.yaw)) * a
-    tf.transform.translation.y = camera_headY - cos(radians(msg.yaw)) * a
-    tf.transform.translation.z = camera_headZ + cos(radians(msg.pitch)) * cameraO
+    tfS.transform.translation.x = camera_headX + sin(radians(msg.yaw)) * a
+    tfS.transform.translation.y = camera_headY - cos(radians(msg.yaw)) * a
+    tfS.transform.translation.z = camera_headZ + cos(radians(msg.pitch)) * cameraO
     # Quaternion
     q = tf.transformations.quaternion_from_euler(msg.yaw, msg.pitch, 0)
-    tf.transform.rotation.x = q[0]
-    tf.transform.rotation.y = q[1]
-    tf.transform.rotation.z = q[2]
-    tf.transform.rotation.w = q[3]
+    tfS.transform.rotation.x = q[0]
+    tfS.transform.rotation.y = q[1]
+    tfS.transform.rotation.z = q[2]
+    tfS.transform.rotation.w = q[3]
 
     # Broadcast
-    br.sendTransform(tf)
+    br.sendTransform(tfS)
 
 if __name__ == '__main__':
     rospy.init_node('camera_tf_broadcaster')

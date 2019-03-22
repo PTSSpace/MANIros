@@ -1,0 +1,14 @@
+<launch>
+    <!-- Load Rover Parameters -->
+    <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
+    <rosparam command="load" file="$(arg rover_parameters_url)" />
+    
+    <!-- node name="camera_head_control" pkg="maniros" type="camera_head_control.py" output="screen"/-->
+    <!-- test test-name="camera_head_control_test" pkg="maniros" type="camera_head_control_test.py"/-->
+
+    <param name="~camera" type="string" value="stereo_camera" />
+    <node name="stereo_camera_transform" pkg="maniros" type="camera_transform.py" output="screen"/>
+    <test test-name="camera_tf_test" pkg="maniros" type="camera_tf_test.py"/>
+
+
+</launch>
