@@ -1,5 +1,0 @@
-<launch>
-  <node name="cmd_vel" pkg="maniros" type="cmd_vel.py" output="screen"/>
-
-  <test test-name="cmd_vel_test" pkg="maniros" type="cmd_vel_test.py"/>
-</launch>

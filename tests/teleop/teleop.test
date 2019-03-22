@@ -1,5 +1,0 @@
-<launch>
-  <node name="teleop" pkg="maniros" type="teleop.py" output="screen"/>
-
-  <test test-name="teleop_test" pkg="maniros" type="teleop_test.py"/>
-</launch>
