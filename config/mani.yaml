@@ -1,0 +1,25 @@
+# Rover Dimension in [mm]
+rover_length: 436.0
+rover_width: 475.7
+rover_height: 452.0
+
+# Initial Camera Position in [mm]
+# (Guessed values)
+camera_headX: 45.0
+camera_headY: 0.0
+camera_headZ: 30.0
+# Camera Offset from Pitch Axis in [mm]
+# Stereo Camera (Guessed values)
+stereo_cameraO: 0.0
+# IR Camera (Guessed values)
+ir_cameraO: 5.0
+
+# IMU Position in [mm] and Orientation Quaternion
+# Central IMU
+c_imuX: 1.0
+c_imuY: 0.0
+c_imuZ: 0.0
+#c_imuQX: 0.0
+#c_imuQY: 0.0
+#c_imuQZ: 0.0
+#c_imuQW: 1.0

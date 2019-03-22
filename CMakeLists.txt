@@ -9,9 +9,15 @@ project(maniros)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
-  roscpp
+  sensor_msgs
   std_msgs
   message_generation
+  rosserial_arduino
+  rosserial_client
+  actionlib_msgs
+  geometry_msgs
+  tf
+  tf2
 )
 
 ## System dependencies are found with CMake's conventions
@@ -20,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -49,8 +55,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
     FILES
+    MoveControl.msg
     RoverControl.msg
     MotorControl.msg
+    CameraHeadPose.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -103,8 +111,24 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-    CATKIN_DEPENDS message_runtime
-)
+    CATKIN_DEPENDS message_runtime)
+
+#######################
+## rosserial_arduino ##
+#######################
+
+#rosserial_generate_ros_lib(
+#  PACKAGE rosserial_arduino
+#  SCRIPT make_libraries.py
+#)
+
+#rosserial_configure_client(
+#  DIRECTORY arduino_firmware
+#  TOOLCHAIN_FILE ${ROSSERIAL_ARDUINO_TOOLCHAIN}
+#)
+
+#rosserial_add_client_target(arduino_firmware motor_driver_nano ALL)
+#rosserial_add_client_target(arduino_firmware motor_driver_nano-upload)
 
 ###########
 ## Build ##
@@ -114,25 +138,23 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-  ${catkin_INCLUDE_DIRS}
-  src/vendor/
+# ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-add_library(JHPWMPCA9685
-  src/vendor/JHPWMPCA9685.cpp
-)
+# add_library(
+# 
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-#add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/maniros_node.cpp)
-add_executable(servo_controller src/driving/controller/servo_controller.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -145,10 +167,9 @@ add_executable(servo_controller src/driving/controller/servo_controller.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(servo_controller
-   ${catkin_LIBRARIES}
-  JHPWMPCA9685
-)
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -194,6 +215,3 @@ target_link_libraries(servo_controller
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
