@@ -12,8 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   message_generation
-  rosserial_arduino
-  rosserial_client
   actionlib_msgs
   geometry_msgs
   tf
@@ -112,23 +110,6 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
     CATKIN_DEPENDS message_runtime)
-
-#######################
-## rosserial_arduino ##
-#######################
-
-#rosserial_generate_ros_lib(
-#  PACKAGE rosserial_arduino
-#  SCRIPT make_libraries.py
-#)
-
-#rosserial_configure_client(
-#  DIRECTORY arduino_firmware
-#  TOOLCHAIN_FILE ${ROSSERIAL_ARDUINO_TOOLCHAIN}
-#)
-
-#rosserial_add_client_target(arduino_firmware motor_driver_nano ALL)
-#rosserial_add_client_target(arduino_firmware motor_driver_nano-upload)
 
 ###########
 ## Build ##
