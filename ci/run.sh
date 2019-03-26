@@ -8,8 +8,8 @@ apt-get install -y i2c-tools libi2c-dev
 source /opt/ros/kinetic/setup.bash
 
 # install ros dependencies
-apt-get install ros-kinetic-geometry
-apt-get install ros-kinetic-geometry2
+apt-get install -y ros-kinetic-geometry
+apt-get install -y ros-kinetic-geometry2
 
 # create workspace
 mkdir -p ~/catkin_ws/src
