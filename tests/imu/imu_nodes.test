@@ -3,8 +3,8 @@
     <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
     <rosparam command="load" file="$(arg rover_parameters_url)" />
     
-    <node name="imu_pub" pkg="maniros" type="imu_pub.py" output="screen"/>
-    <test test-name="imu_pub_test" pkg="maniros" type="imu_pub_test.py"/>
+    <!-- node name="imu_pub" pkg="maniros" type="imu_pub.py" output="screen"/ -->
+    <!-- test test-name="imu_pub_test" pkg="maniros" type="imu_pub_test.py"/ -->
 
     <param name="~imu" type="string" value="c_imu" />
     <node name="central_imu_transform" pkg="maniros" type="imu_transform.py" output="screen"/>
