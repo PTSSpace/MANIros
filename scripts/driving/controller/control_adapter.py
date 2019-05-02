@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import rospy
-import serial
 
 # from maniros.msg import RoverControl # Distance based control
 from maniros.msg import MoveControl # Speed based control
