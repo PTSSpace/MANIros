@@ -1,14 +1,16 @@
 #!/usr/bin/env python
+
+# Transformation based on right-hand rover coordinate system
+# seen from above
+# x - forward
+# y - left
+# z - upward
+
 import math
-import rospy
-
-
-from maniros.msg import RoverControl
-from maniros.msg import MotorControl
 
 class VectorTranslation:
     """
-    This class is used to convert RoverControl messages to MotorControls
+    This class is used to convert from general speed/angle input to individual speed/angle output for each wheel
     """
     def __init__(self, length, width):
         """
@@ -16,11 +18,10 @@ class VectorTranslation:
         :param length: The distance between front and back wheels in mm (with the camera being 'front')
         :param name: The distance between right and left in mm(with the panel tilting 'right/left')
         """
-        self.robot_length = length
-        self.robot_width = width
+        self.rover_length = length
+        self.rover_width = width
         self.wheelIndexArray = ['front_left', 'rear_left', "rear_right", "front_right"]
-        self.wheelAngleArray = []
-        self.wheelSpeedArray = []
+
 
     def normalizeArray(self, array, threshhold = 1):
         """
@@ -32,10 +33,10 @@ class VectorTranslation:
         :param array: An array with signed ints
         :param threshhold: Noramlize values to a threshhold (default: 1)
         """
-        maxvalue = abs(max(array, key=abs))
+        maxvalue = abs(max(array, key=abs)) # math.sqrt(2)  # 
         if maxvalue > threshhold:
             for index, value in enumerate(array):
-                array[index] = (value / maxvalue) * threshhold
+				array[index] = (value / maxvalue) * threshhold      # normalise and apply tranlational speed scaling factor
         return array
 
     def calculateRotationFactor(self, rotation):
@@ -48,13 +49,14 @@ class VectorTranslation:
         #rotation, the scaled rotationDistance is multiplied with the width or length, returning a rotation component
         #amd rotationHeightFactor = r_fac_x (as length is along the x axis)
         #this rotationWidthFactor = r_fac_y
-        self.r_fac = rotation / math.hypot(self.robot_width, self.robot_length)
-        self.r_fac_x = round(self.robot_length * self.r_fac, 4) # why round? because division of floats can lead to test failures 0.2 * 3 = 0.6000000001
-        self.r_fac_y = round(self.robot_width * self.r_fac, 4)
+        self.r_fac = rotation / math.hypot(self.rover_width, self.rover_length)
+        self.r_fac_x = round(self.rover_width * self.r_fac, 4) # why round? because division of floats can lead to test failures 0.2 * 3 = 0.6000000001
+        self.r_fac_y = round(self.rover_length * self.r_fac, 4)
+
 
     def addRotationAndTranslation(self, x_value, y_value):
         """
-        rotationFactor  + translation (the vector xDistance, yDistance) = finalVector
+        rotationFactor  + translation (the vector xComponent, yComponent) = finalVector
 
         :param x_value: the translation along the X-axis
         :param y_value: the translation along the Y-axis
@@ -68,33 +70,28 @@ class VectorTranslation:
                 y_calc = -self.r_fac_y + y_value
             else: #assigns a positive Y Rotation to all front wheels
                 y_calc= self.r_fac_y + y_value
-            
+
             angle = math.atan2(y_calc, x_calc)
             speed = math.hypot(x_calc, y_calc)
+
             #MISSING
             #reverse speed if necessary, need Implementation of WHEN an angle should be turned
             #this has to be determined by the hardware orientation of the servo
-            if math.fabs(angle) > (math.pi / 2): #this > (math.pi / 2) should be changed
-                angle -= math.copysign(math.pi, angle)
-                speed *= -1
-            #reverse wheel direction if speed in x-direction is negative
-            if (x_calc < 0):
-                speed *= -1
-            
+            if (math.fabs(angle) > (math.pi / 2)): 
+				angle -= math.copysign(math.pi, angle)
+				speed *= -1
+
             self.wheelAngleArray.append(angle)
             self.wheelSpeedArray.append(speed)
 
-    def translateRoverControl(self, data):
-        self.msg = MotorControl()
+    def translateMoveControl(self, data):
+    	self.wheelAngleArray = []
+        self.wheelSpeedArray = []
 
-        self.calculateRotationFactor(data.rotationDistance)
+        self.calculateRotationFactor(data.rotationAngle)
         
-        self.addRotationAndTranslation(data.xDistance, data.yDistance)
+        self.addRotationAndTranslation(data.xSpeed, data.ySpeed)
         
         self.normalizeArray(self.wheelSpeedArray)
         
-        for index, wheel in enumerate(self.wheelIndexArray):
-            setattr(self.msg, '%s_angle' % wheel, self.wheelAngleArray[index])
-            setattr(self.msg, '%s_speed' % wheel, self.wheelSpeedArray[index])
-
-        return self.msg
+        return [self.wheelSpeedArray, self.wheelAngleArray]

@@ -8,12 +8,25 @@ from maniros.msg import MoveControl # Speed based control
 from maniros.msg import MotorControl
 
 # Velocity based vector protocol
-from vector_protocol.vel_vector_protocol import VectorTranslation
+from vector_protocol.vector_protocol import VectorTranslation
 
 def callback(data):
     #rospy.loginfo("Adapter: I've heard x:%d y:%d rot:%d - translating..." % (data.xDistance, data.yDistance, data.rotationDistance))
 
-    msg = VectorTranslation(rover_length, rover_width, trans_scl).translateMoveControl(data)
+    [wheelSpeedArray, wheelAngleArray] = VectorTranslation(rover_length, rover_width).translateMoveControl(data)
+
+    # Create motor control message
+    msg = MotorControl()
+    msg.front_left_angle = wheelAngleArray[0]
+    msg.rear_left_angle = wheelAngleArray[1]
+    msg.rear_right_angle = wheelAngleArray[2]
+    msg.front_right_angle = wheelAngleArray[3]
+
+    msg.front_left_speed = wheelSpeedArray[0]
+    msg.rear_left_speed = wheelSpeedArray[1]
+    msg.rear_right_speed = wheelSpeedArray[2]
+    msg.front_right_speed = wheelSpeedArray[3]
+
 
     pub.publish(msg)
     rospy.loginfo("W_angle \t fl:%.3f rl:%.3f rr:%.3f fr:%.3f" % (
