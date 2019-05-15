@@ -6,6 +6,7 @@ import struct
 import time
 import rospy
 import threading
+import math
 
 # from maniros.msg import RoverControl      # Distance based control
 from maniros.msg import MoveControl         # Velocity based control
@@ -110,12 +111,12 @@ def locomotion_control(data):
     for index, wheel in enumerate(wheelIndexArray):
         # Extraxt wheel velocity and orientation
         velocity = wrap_message_format(wheelSpeedArray[index])
-        orientation = wrap_message_format(wheelAngleArray[index])
+        orientation = wrap_message_format(math.degrees(wheelAngleArray[index]))
         # Convert to bytes
         speed_data = struct.pack('i',velocity)
         orientation_data = struct.pack('i',orientation)
         # Send CAN locomotion command
-        rospy.loginfo("Command: %s wheel \t Velocity: %d \t Orientation: %d" % (wheel, velocity, orientation))
+        rospy.loginfo("Command: %s wheel \t Velocity: %d \t rps Orientation: %d deg" % (wheel, velocity, orientation))
         send_can_message(commandIdArray[index], 8, speed_data+orientation_data)
 
 def get_encoder_odometry():
