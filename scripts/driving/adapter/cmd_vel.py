@@ -31,8 +31,8 @@ class CmdVel:
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "/cmd_vel";
         msg.xSpeed = data.linear.x
-        msg.ySpeed = data.linear.y          
-        msg.rotationAngle = data.angular.z     
+        msg.ySpeed = data.linear.y
+        msg.rotationAngle = data.angular.z
 
         rospy.loginfo("Cmd_vel \t x:%f y:%f rot:%f" % (msg.xSpeed, msg.ySpeed, msg.rotationAngle));
         self.pub.publish(msg)
