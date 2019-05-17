@@ -57,6 +57,7 @@ find_package(catkin REQUIRED COMPONENTS
     Vector4.msg
     MoveControl.msg
     EncoderOdometry.msg
+    MoveControl.msg
  )
 
 ## Generate services in the 'srv' folder

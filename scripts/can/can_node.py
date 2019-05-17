@@ -10,7 +10,9 @@ import math
 
 # from maniros.msg import RoverControl      # Distance based control
 from maniros.msg import MoveControl         # Velocity based control
+from maniros.msg import MoveCommand         # Locomotion control switches
 from maniros.msg import EncoderOdometry     # Encoder odometry feedback
+
 
 
 # Velocity based vector protocol
@@ -30,25 +32,40 @@ have higher priority on the CAN network
 
 # Message header ID's:
 # Front left motor controller
-FL_CMD = 0x0C1      # Locomotion command
-FL_ODM = 0x0D1      # Odometry update
+FL_S        = 0x0A1             # Start/stop command
+FL_I        = 0x0B1             # Initialization update
+FL_CMD      = 0x0C1             # Locomotion command
+FL_ODM      = 0x0D1             # Odometry update
 # Rear left motor controller
-RL_CMD = 0x0C2      # Locomotion command
-RL_ODM = 0x0D2      # Odometry update
+RL_S_CMD    = 0x0A2             # Start/stop command
+RL_I_CMD    = 0x0B2             # Initialization update
+RL_CMD      = 0x0C2             # Locomotion command
+RL_ODM      = 0x0D2             # Odometry update
 # Rear right motor controller
-RR_CMD = 0x0C3      # Locomotion command
-RR_ODM = 0x0D3      # Odometry update
+RR_S        = 0x0A3             # Start/stop command
+RR_I        = 0x0B3             # Initialization update
+RR_CMD      = 0x0C3             # Locomotion command
+RR_ODM      = 0x0D3             # Odometry update
 # Front right motor controller
-FR_CMD = 0x0C4      # Locomotion command
-FR_ODM = 0x0D4      # Odometry update
+FR_S        = 0x0A4             # Start/stop command
+FR_I        = 0x0B4             # Initialization update
+FR_CMD      = 0x0C4             # Locomotion command
+FR_ODM      = 0x0D4             # Odometry update
 
+'''
 wheelIndexArray = ['front_left', 'rear_left', 'rear_right', 'front_right']
 commandIdArray = [FL_CMD, RL_CMD, RR_CMD, FR_CMD]
 odometryIdArray = [FL_ODM, RL_ODM, RR_ODM, FR_ODM]
+stopIdArray = [FL_S, RL_S, RR_S, FR_S]
+initialliseIdArray = [FL_I, RL_I, RR_I, FR_I]
+'''
 
-#wheelIndexArray = ['front_left', 'rear_right']
-#commandIdArray = [FL_CMD, RR_CMD]
-#odometryIdArray = [FL_ODM, RR_ODM]
+wheelIndexArray = ['front_left', 'rear_right']
+commandIdArray = [FL_CMD, RR_CMD]
+odometryIdArray = [FL_ODM, RR_ODM]
+stopIdArray = [FL_S, RR_S]
+initialliseIdArray = [FL_I, RR_I]
+
 
 # Mutex lock to protect CAN interface
 lock = threading.Lock()
@@ -102,9 +119,27 @@ def send_can_message(arbitration_id, length, data):
         except can.CanError:
             rospy.loginfo("Message NOT sent")
 
-def locomotion_control(data):
-    rospy.loginfo("Adapter: I've heard x:%d y:%d rot:%d - translating..." % (data.xSpeed, data.ySpeed, data.rotationAngle))
+def locomotion_switch(data):
+    rospy.loginfo("Adapter: I've heard Steering:%d \t Driving:%d \t Publisher:%d \t ZeroEncoders:%d \t CancelAction:%d - translating..." % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders, data.CancelAction))
+    for index, wheel in enumerate(wheelIndexArray):
+        # Motor start/stop command
+        # Convert to bytes
+        steer_data = struct.pack('i',data.SteeringPower)
+        drive_data = struct.pack('i',data.DrivingPower)
+        # Send CAN locomotion command
+        rospy.loginfo("Command: %s wheel \t Steer: %d \t rps Drive: %d" % (wheel, data.SteerPower, data.DrivePower))
+        send_can_message(stopIdArray[index], 8, steer_data+drive_data)
 
+        # Publisher start/stop and Zeroing command
+        # Convert to bytes
+        zeroing_data = struct.pack('i',data.Publisher)
+        publish_data = struct.pack('i',data.ZeroEncoders)
+        # Send CAN locomotion command
+        rospy.loginfo("Command: %s wheel \t Zero Encoders: %d \t rps Publisher: %d" % (wheel, data.Publisher, data.ZeroEncoders))
+        send_can_message(initialliseIdArray[index], 8, zeroing_data+publish_data)
+
+def locomotion_control(data):
+    rospy.loginfo("Adapter: I've heard x:%d \t y:%d \t rot:%d - translating..." % (data.xSpeed, data.ySpeed, data.rotationAngle))
     # Convert velocity twist messages to individual wheel velocity and orientation
     [wheelSpeedArray, wheelAngleArray] = VectorTranslation(rover_length, rover_width).translateMoveControl(data)
 
@@ -118,6 +153,15 @@ def locomotion_control(data):
         # Send CAN locomotion command
         rospy.loginfo("Command: %s wheel \t Velocity: %d \t rps Orientation: %d deg" % (wheel, velocity, orientation))
         send_can_message(commandIdArray[index], 8, speed_data+orientation_data)
+
+def initialiseCanBusNodes():
+    # Initialise each wheel controller by zeroing incremental encoders, starting motor control and feedback publishers
+    for index, wheel in enumerate(wheelIndexArray):
+        # Convert to bytes
+        dummy_data = struct.pack('q',0)
+        # Send CAN locomotion command
+        rospy.loginfo("Command: %s wheel Initialization")
+        send_can_message(initialliseIdArray[index], 8, dummy_data)
 
 def get_encoder_odometry():
     # Get message values from listener
@@ -135,8 +179,17 @@ def encoder_odometry_publisher(event):
 def can_interface():
     # Start ROS node
     rospy.init_node("can_adapter", anonymous=True)
+    # Initialise all driving nodes
+    initMsg = MoveCommand()                                 # Initialisation message
+    initMsg.SteerPower = 1
+    initMsg.DrivePower = 1
+    initMsg.Publisher = 1
+    initMsg.ZeroEncoders = 1
+    locomotion_switch(initMsg)
     # Subscribe to locomotion commands
-    sub = rospy.Subscriber("cmd_vel", MoveControl, locomotion_control, queue_size=10)
+    swtich_sub = rospy.Subscriber("cmd_vel", MoveCommand, locomotion_switch, queue_size=10)
+    move_sub = rospy.Subscriber("cmd_vel", MoveControl, locomotion_control, queue_size=10)
+
     # Start ROS publisher for encoder odometry
     timer = rospy.Timer(rospy.Duration(5), encoder_odometry_publisher)
     rospy.spin()
