@@ -17,34 +17,41 @@ class Teleop:
         self.deadman = 0
 
         self.cmd_vel_pub = rospy.Publisher("teleop/cmd_vel", Twist, queue_size=1)
-        self.lc_switch_pub = rospy.Publisher("teleop/lc_switch", Twist, queue_size=1)
+        self.lc_switch_pub = rospy.Publisher("teleop/lc_switch", MoveCommand, queue_size=1)
         #self.goal_cancel_pub = rospy.Publisher("move_base/cancel", GoalID, queue_size=1)
         self.joy_sub = rospy.Subscriber("joy", Joy, self.on_joy)
+        self.switch = [0, 0, 0, 0]
 
     def on_joy(self, data):
         # Check for dead man switch
-        if (data.buttons[5]):
+        if (data.buttons[5] and self.deadman == 0):
             self.deadman = 1
-            # Move control message
-            # adjusting input to right-hand rover coordinate system
-            # seen from above (x - forward, y - left,z - upward)
-            twist = Twist()
-            twist.linear.x = data.axes[5]
-            twist.linear.y = -data.axes[4]
-            twist.angular.z = -data.axes[2]* math.pi/2
-            self.cmd_vel_pub.publish(twist)
-            rospy.loginfo("Teleop \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))
-            if (any(data.buttons[1:3]) != 0):
-                # Send locomotion switch command
-                switch = MoveCommand()
-                switch.SteerPower = data.buttons[0]
-                switch.DrivePower = data.buttons[3]
-                switch.Publisher = data.buttons[1]
-                switch.ZeroEncoders = data.buttons[2]
-                self.lc_switch_pub.publish(switch)
-                rospy.loginfo("Teleop \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (switch.SteerPower, switch.DrivePower, switch.Publisher, switch.ZeroEncoders))
-
-        if (data.buttons[5] == 0 and self.deadman != 0):
+        elif (data.buttons[5] and self.deadman != 0):
+            if (data.buttons[0:4] != self.switch):
+                if (any(data.buttons[0:4]) != 0):
+                    # Send locomotion switch command
+                    switch = MoveCommand()
+                    switch.header.stamp = rospy.Time.now()
+                    switch.header.frame_id = "teleop/lc_switch";
+                    switch.SteerPower = data.buttons[0]
+                    switch.DrivePower = data.buttons[3]
+                    switch.Publisher = data.buttons[1]
+                    switch.ZeroEncoders = data.buttons[2]
+                    self.lc_switch_pub.publish(switch)
+                    rospy.loginfo("Teleop \t Steer:%d \t Drive:%d" % (switch.SteerPower, switch.DrivePower))
+                    rospy.loginfo("Teleop \t Publisher:%d \t ZeroEncoders:%d" % (switch.Publisher, switch.ZeroEncoders))
+                self.switch = data.buttons[0:4]
+            else:
+                # Move control message
+                # adjusting input to right-hand rover coordinate system
+                # seen from above (x - forward, y - left,z - upward)
+                twist = Twist()
+                twist.linear.x = data.axes[5]
+                twist.linear.y = -data.axes[4]
+                twist.angular.z = -data.axes[2]* math.pi/2
+                self.cmd_vel_pub.publish(twist)
+                rospy.loginfo("Teleop \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))
+        elif (data.buttons[5] == 0 and self.deadman != 0):
             self.deadman = 0
             rospy.loginfo("Teleop: \t Deadman switch is:%d" % self.deadman)
             # Move control abort message

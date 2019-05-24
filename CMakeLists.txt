@@ -57,7 +57,7 @@ catkin_python_setup()
     Vector4.msg
     MoveControl.msg
     EncoderOdometry.msg
-    MoveControl.msg
+    MoveCommand.msg
  )
 
 ## Generate services in the 'srv' folder

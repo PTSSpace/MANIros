@@ -14,8 +14,12 @@
 
     <node name="joy_node" pkg="joy" type="joy_node" output="screen">
 	<param name="dev" type="string" value="/dev/input/js0" />
+        <param name="coalesce_interval" type="double" value="0.1" />
     </node>
-    
+
+    <node name="can_node" pkg="maniros" type="can_node.py" output="screen">
+    </node>
+
     <?ignore
     <node name="serial_node" pkg="rosserial_python" type="serial_node.py" output="screen">
 	<param name="port" type="string" value="$(arg port)" />
