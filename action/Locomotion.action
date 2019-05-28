@@ -1,0 +1,9 @@
+#goal definition
+MoveControl command
+---
+#result definition
+int32[] sequence
+---
+#feedback
+int32[] sequence
+
