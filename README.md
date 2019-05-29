@@ -13,30 +13,45 @@ Development is done on topic branches, if you work on a new feature create your 
 done create a pull request against the `develop` branch. If all tests complete successfully, and there are additional
 ones for new features, it can be reviewed and merged into master. 
 
-## Arduino
+## CAN Bus
+The CAN interface is set to **can0** but may be set to **can1** if desired.
+The adequate pins are:
 
-The Arduino needs the ros_lib library, including the custom message header.
+| Interface | CAN_STBY | CAN_RX | CAN_TX|
+|:----------|:----------:|:--------:|:-------:|
+| can0 | Pin 4 | Pin 5| Pin 7 |
+| can0 | Pin 14 | Pin 15 | Pin 17 |
 
-If you installed the Arduino IDE a sketchbok folder already exists, otherwise create `sketchbook/libraries` in your homefolder.
+### Parameters
 
-Then run
+The CAN bus bit rate is adjsuted by setting **FREQUENCY**.
+The maximum wheel velocity **MAX_VEL** can be set at the top of the Pyhton code on the OBC or in the defines.h file on the Drive Nodes.
+If the parameters are changed, they must be adjusted on all nodes connected to the bus.
 
-```
-cd catkin_ws && source devel/setup.sh
-rm -rf </home/ubuntu/>sketchbook/libraries/ros_lib
-rosrun rosserial_arduino make_libraries.py </home/ubuntu/>sketchbook/libraries
-```
+#### Message ID's:
 
+Messages with lower numeric values for their ID's have higher priority on the CAN network. All message ID's are given in Hexadecimal.
+To ensure the priority of specified commands, each command has its own range denoted by the letter in the hex numbers.
+Each command further has its own indentifier number to indicate which node it is specified for or originating from. The OBC is the only communication point to the other nodes and does therefore not need an indentifier number.
 
-You also need to change the path in `maniros/arduino_firmware/motor_driver.cpp`
-in line 3 to match your path to the ros_lib
+##### ID List
 
-Change the BOARD and PORT in `maniros/arduino_firmware/CMakeLists.txt` to reflect your Arduino Board and USB Port.
+| Wheel location on rover | Indentifier number | ID's |
+|:------------------------|:------------------:|:----:|
+| front_left | 1 | 0xXX1 |
+| rear_left | 2 | 0xXX2 |
+| rear_right | 3 | 0xXX3 |
+| front_right | 4 | 0xXX4 |
 
-To upload a sketch, run:
+##### Command List
 
-```
-catkin_make
-catkin_make maniros_arduino_firmware_motor_driver_nano-upload
-```
+| Message | ID's | Description | Sender | Receiver | Data length | Data division |
+|:--------|:----:|:-----------:|:------:|:--------:|:-----------:|:-------------:|
+| powerCmd | 0x0AX | Power switch command for steering/driving motor | OBC| Drive Node | 8 byte | steerMode \[0,1\] (bytes 1 to 4) driveMode \[0,1\] (bytes 5 to 8) |
+| initialliseCmd | 0x0BX | Initialisatin command for odometry publisher and zeroing steering encoders | OBC| Drive Node | 8 byte | publisherMode \[0,1\] (bytes 1 to 4) zeroEncoders \[0,1\] (bytes 5 to 8) |
+| orientationCmd | 0x0CX | Set orientation command | OBC| Drive Node | 4 byte | set_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
+| velocityCmd | 0x0DX | Set velocity command | OBC| Drive Node | 4 byte | set_velocity \[-2147483647..2147483647\] (bytes 1 to 4) |
+| orientationOdm | 0x0EX | Odometry feedback for reached steering orientation | Drive Node | OBC | 4 byte | current_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
+| velocityOdm | 0x0FX | Odometry feedback of absolute encoder counts for rover distance traveled | Drive Node | OBC | 8 byte | pulses \[-2147483647..2147483647\] (bytes 1 to 4) revolutions \[-2147483647..2147483647\] (bytes 5 to 8) |
 
+**The velocity and orientation are scaled values based on the maximal velocity and orientation, respectively.**
