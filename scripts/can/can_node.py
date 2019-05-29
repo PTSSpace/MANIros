@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 
 """
 This program provides a ROS node for the can0 bus interface.
@@ -16,7 +17,6 @@ Published ROS topics:
 """
 Imports
 """
-from __future__ import print_function
 import rospy
 import actionlib
 import threading
@@ -96,7 +96,7 @@ class CAN_Listener(can.Listener):
         # Extract wheel data from the received CAN message
         if ID in orientationOdm:
             idx =  [int(x) for x in orientationOdm].index(ID)
-            self.orientation[idx] = unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
+            self.orientation[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
             # Set position reached flag
             self.steer[idx] = 1
             rospy.loginfo("Message Source: %s \t Orientation: %3.3f" % (wheelIndex[idx], self.orientation[idx]))
@@ -125,7 +125,8 @@ class CAN_Listener(can.Listener):
 
 class CANInterface():
     """Interface class for CAN bus"""
-    def __init__(self):
+    @classmethod
+    def __init__(cls):
         # Mutex lock to protect CAN interface
         cls.lock = threading.Lock()
         # Start up CAN bus
@@ -257,7 +258,7 @@ class LocomotionControl(object):
         rospy.loginfo('%s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel orientation
-            orientation = wrap_message_format(wheelAngleArray[idx]/MAX_ORT)
+            orientation = LocomotionControl.wrap_message_format(wheelAngleArray[idx]/MAX_ORT)
             # Convert to bytes
             data = struct.pack('i',orientation)
             # Send CAN locomotion command
@@ -279,7 +280,7 @@ class LocomotionControl(object):
         rospy.loginfo('%s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel velocity
-            velocity = wrap_message_format(wheelSpeedArray[idx])
+            velocity = LocomotionControl.wrap_message_format(wheelSpeedArray[idx])
             # Convert to bytes
             data = struct.pack('i',velocity)
             # Send CAN locomotion command
