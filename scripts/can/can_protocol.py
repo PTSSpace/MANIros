@@ -1,4 +1,9 @@
 """
+Imports
+"""
+import math
+
+"""
 Global variables
 """
 # Set CAN protocol parameters

@@ -49,7 +49,7 @@ class LocomotionControl(object):
         self.publisherMode = False
 
         # Construct CAN bus interface
-        self.ci = CANInterface(BITRATE)
+        self.ci = CANInterface()
 
         # EPS electrical current publisher
         self.eps_pub = rospy.Publisher("eps_current", EpsCurrent, queue_size=10)

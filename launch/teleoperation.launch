@@ -10,7 +10,7 @@
     </node>
     ?>
 
-    <node name="locomotion_node" pkg="maniros" type="can_node.py" output="screen"/>
+    <node name="locomotion_node" pkg="maniros" type="locomotion_node.py" output="screen"/>
 
     <node name="joy_node" pkg="joy" type="joy_node" output="screen">
         <param name="dev" type="string" value="/dev/input/js0" />

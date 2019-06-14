@@ -77,19 +77,19 @@ class CAN_Listener(can.Listener):
             value *= MAX_VEL
         elif type == 2:
             value *= MAX_CUR_B
-        elif type == 3
+        elif type == 3:
             value *= MAX_CUR_M
         return value
 
 
-class CANInterface(rate):
+class CANInterface():
     """Interface class for CAN bus"""
     @classmethod
-    def __init__(cls, rate):
+    def __init__(cls):
         # Mutex lock to protect CAN interface
         cls.lock = threading.Lock()
         # Start up CAN bus
-        cls.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=rate)
+        cls.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=BITRATE)
 
         # Create listener
         cls.listener = CAN_Listener()

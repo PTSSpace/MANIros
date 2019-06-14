@@ -21,7 +21,7 @@ Imports
 import rospy
 import actionlib
 import time
-import math
+import threading
 
 # Import CAN protocol parameters
 from can_protocol import *
@@ -57,11 +57,11 @@ class LocomotionControl(object):
         self.driving = False
 
         # Construct CAN bus interface
-        self.ci = CANInterface(BITRATE)
+        self.ci = CANInterface()
 
         t1 = threading.Thread(name='block', 
-                              target=wait_for_event,
-                              args=(ci.lc,))
+                              target=self.wait_for_event,
+                              args=(self.ci.listener.lc,))
         t1.start()
 
         # Get ros parameters
@@ -81,11 +81,11 @@ class LocomotionControl(object):
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
         self._as.start()
 
-def wait_for_event(e):
-    """Wait for the event to be set before doing anything"""
-    print ('wait_for_event starting')
-    event_is_set = e.wait()
-    print ('event set: %s', event_is_set)
+    def wait_for_event(self, e):
+        """Wait for the event to be set before doing anything"""
+        print ('wait_for_event starting')
+        event_is_set = e.wait()
+        print ('event set: %s', event_is_set)
 
 
     def locomotion_switch(self, data):
