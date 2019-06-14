@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+"""
+Imports
+"""
 import rospy
 import time
 import actionlib
@@ -10,10 +13,13 @@ from maniros.msg import MoveControl # Speed based control
 from maniros.msg import LocomotionAction
 from maniros.msg import LocomotionGoal
 
+"""
+Classes
+"""
 class CmdVel:
     def __init__(self):
         # Start up action client and wait for action server
-        self.client = actionlib.SimpleActionClient('can_node', LocomotionAction)
+        self.client = actionlib.SimpleActionClient('locomotion_control', LocomotionAction)
         self.client.wait_for_server()
         # Subscribe to publishers
         rospy.Subscriber("move_base/cmd_vel", Twist, callback=self.on_autonomous_cmd)
@@ -64,7 +70,9 @@ class CmdVel:
     def shutdown(self):
         self.client.cancel_goal()
 
-
+"""
+Main
+"""
 if __name__ == '__main__':
     rospy.init_node("cmd_vel")
     muxer = CmdVel()

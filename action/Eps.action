@@ -1,0 +1,9 @@
+#goal definition
+bool command
+---
+#result definition
+bool[] sequence
+---
+#feedback
+bool[] sequence
+

@@ -58,6 +58,8 @@ catkin_python_setup()
     MoveControl.msg
     EncoderOdometry.msg
     MoveCommand.msg
+    EpsCommand.msg
+    EpsCurrent.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -71,6 +73,7 @@ catkin_python_setup()
  add_action_files(
    FILES
    Locomotion.action
+   Eps.action
   )
 
 ## Generate added messages and services with any dependencies listed here

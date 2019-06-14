@@ -4,12 +4,13 @@ from __future__ import print_function
 """
 This program provides a ROS node for the can0 bus interface.
 It connects the locomotion nodes to the ROS network.
-Veloctity and general power commands are forwarded to the drive nodes.
+Veloctity and general motor commands are forwarded to the drive nodes.
 Encoder odometry messages are received from the drive nodes and published to the ROS network.
 
 Subscribed ROS topics:
 *   teleop/lc_switch
-*   can_node
+ROS actions:
+*   locomotion_control
 Published ROS topics:
 *   encoder_odometry
 """
@@ -19,11 +20,13 @@ Imports
 """
 import rospy
 import actionlib
-import threading
-import can
-import struct
 import time
 import math
+
+# Import CAN protocol parameters
+from can_protocol import *
+# Import CAN interface
+from can_interface import CANInterface
 
 # Import ROS messages
 from maniros.msg import MoveCommand                                                 # Locomotion control switches
@@ -38,125 +41,11 @@ from maniros.msg import LocomotionResult
 from vector_protocol.vector_protocol import VectorTranslation
 
 """
-Global variables
-"""
-
-# Set CAN protocol parameters
-FREQUENCY           = 500000                                                        # CAN bus bit rate
-
-# Message header ID's:
-"""
-Messages with lower numeric values for their ID's
-have higher priority on the CAN network
-"""
-'''
-wheelIndex          = ['front_left', 'rear_left', 'rear_right', 'front_right']      # Wheel location on rover
-powerCmd            = [0x0A1, 0x0A2, 0x0A3, 0x0A4]                                  # Motor/PID start/stop command
-initialliseCmd      = [0x0B1, 0x0B2, 0x0B3, 0x0B4]                                  # Initialization and odometry publisher command
-orientationCmd      = [0x0C1, 0x0C2, 0x0C3, 0x0C4]                                  # Set orientation locomotion command
-velocityCmd         = [0x0D1, 0x0D2, 0x0D3, 0x0D4]                                  # Set velocity locomotion command
-orientationOdm      = [0x0E1, 0x0E2, 0x0E3, 0x0E4]                                  # Orientation odometry locomotion feedback
-velocityOdm         = [0x0F1, 0x0F2, 0x0F3, 0x0F4]                                  # Velocity odometry locomotion feedback
-'''
-
-wheelIndex          = ['front_left']
-powerCmd            = [0x0A1]
-initialliseCmd      = [0x0B1]
-orientationCmd      = [0x0C1]
-velocityCmd         = [0x0D1]
-orientationOdm      = [0x0E1]
-velocityOdm         = [0x0F1]
-
-MAX_VALUE        = 2147483647                                                       # Maximal signed value for 4 bytes
-
-
-# Set motor parameters
-MAX_VEL     = 3                                                                     # Maximal wheel velocity [rps]
-MAX_ORT  = math.pi/2                                                                # Maximal wheel orientation [rad]
-
-
-"""
 Classes
 """
 
-
-class CAN_Listener(can.Listener):
-    """CAN Listener class to catch encoder odometry feedback"""
-    def __init__(self):
-        # Bus feedback variables
-        self.initialised    = False
-        self.activity       = [0, 0, 0, 0]
-        self.steer          = [0, 0, 0, 0]
-        self.orientation    = [.0, .0, .0, .0]
-        self.pulses         = [0, 0, 0, 0]
-        self.revolutions    = [0, 0, 0, 0]
-
-    def on_message_received(self, rxMsg):
-        ID = rxMsg.arbitration_id
-        # Extract wheel data from the received CAN message
-        if ID in orientationOdm:
-            idx =  [int(x) for x in orientationOdm].index(ID)
-            self.orientation[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
-            # Set position reached flag
-            self.steer[idx] = 1
-            rospy.loginfo("Message Source: %s \t Orientation: %3.3f" % (wheelIndex[idx], self.orientation[idx]))
-            # Update node activity flag
-            self.activity[idx] = 1
-        elif ID in velocityOdm:
-            idx =  [int(x) for x in velocityOdm].index(ID)
-            self.pulses[idx] = struct.unpack('i', rxMsg.data[0:4])[0]
-            self.revolutions[idx] = struct.unpack('i', rxMsg.data[4:8])[0]
-            rospy.loginfo("Message Source: %s \t Pulses: %d \t Revolutions: %d" % (wheelIndex[idx], self.pulses[idx], self.revolutions[idx]))
-            # Update node activity flag
-            self.activity[idx] = 1
-        else:
-            rospy.loginfo("Message ID %d not in known list" % ID)
-
-    @staticmethod
-    def unwrap_message_format(value, type):
-        # Scale to float number [0..1]
-        value = float(value) /MAX_VALUE
-        if type:
-            value *= MAX_ORT
-        else:
-            value *= MAX_VEL
-        return value
-
-
-class CANInterface():
-    """Interface class for CAN bus"""
-    @classmethod
-    def __init__(cls):
-        # Mutex lock to protect CAN interface
-        cls.lock = threading.Lock()
-        # Start up CAN bus
-        cls.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=FREQUENCY)
-
-        # Create listener
-        cls.listener = CAN_Listener()
-        # Add notifyier to call listener periodically
-        with cls.lock:
-            cls.notifier = can.Notifier(cls.bus, [cls.listener])
-
-    @classmethod
-    def send_can_message(cls, arbitration_id, length, data):
-        # Create CAN message
-        txMsg = can.Message(arbitration_id=arbitration_id,
-                      dlc= length, data=data,
-                      extended_id=False)
-        # Send CAN message
-        with cls.lock:
-            try:
-                cls.bus.send(txMsg)
-                rospy.loginfo("Message sent on {}".format(cls.bus.channel_info))
-                return 1
-            except can.CanError:
-                rospy.loginfo("Message NOT sent")
-                return 0
-
-
 class LocomotionControl(object):
-    """Locomotion control server for CAN bus communication with wheel controllers"""
+    """Locomotion control/monitoring server for CAN bus communication with wheel controllers"""
     _feedback = LocomotionFeedback()
     _result = LocomotionResult()
 
@@ -168,7 +57,12 @@ class LocomotionControl(object):
         self.driving = False
 
         # Construct CAN bus interface
-        self.ci = CANInterface()
+        self.ci = CANInterface(BITRATE)
+
+        t1 = threading.Thread(name='block', 
+                              target=wait_for_event,
+                              args=(ci.lc,))
+        t1.start()
 
         # Get ros parameters
         self.rover_length = rospy.get_param("/rover_length")
@@ -187,36 +81,32 @@ class LocomotionControl(object):
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
         self._as.start()
 
+def wait_for_event(e):
+    """Wait for the event to be set before doing anything"""
+    print ('wait_for_event starting')
+    event_is_set = e.wait()
+    print ('event set: %s', event_is_set)
+
+
     def locomotion_switch(self, data):
         # Locomotion commands subscriber callback
         rospy.loginfo("Command \t Steer:%d \t Drive:%d" % (data.SteerPower, data.DrivePower))
         rospy.loginfo("Command \t Publisher:%d \t ZeroEncoders:%d" % (data.Publisher, data.ZeroEncoders))
         for idx, wheel in enumerate(wheelIndex):
-            # Toggle driving and steering switches
-            if (data.DrivePower or data.SteerPower):
+            if (any(data)):
+                # Toggle driving and steering switches
                 if data.DrivePower:
                     self.steerMode = not self.steerMode
                 if data.SteerPower:
                     self.driveMode = not self.driveMode
-                # Motor start/stop command
-                # Convert to bytes
-                steer_data = struct.pack('i',int(self.steerMode))
-                drive_data = struct.pack('i',int(self.driveMode))
-                # Send CAN locomotion command
-                rospy.loginfo("Command \t %s wheel \t Steer:%d \t Drive:%d" % (wheel, self.steerMode, self.driveMode))
-                self.ci.send_can_message(powerCmd[idx], 8, steer_data+drive_data)
-                rospy.sleep(0.05)
-            if (data.Publisher or data.ZeroEncoders):
-                # Publisher start/stop and Zeroing command
                 # Toggle publisher switch
                 if data.Publisher:
                     self.publisherMode = not self.publisherMode
-                # Convert to bytes
-                publish_data = struct.pack('i',int(self.publisherMode))
-                zeroing_data = struct.pack('i',int(data.ZeroEncoders))
+                # Motor start/stop command
                 # Send CAN locomotion command
-                rospy.loginfo("Command \t %s wheel \t Publisher:%d \t Zero:%d" % (wheel, self.publisherMode, data.ZeroEncoders))
-                self.ci.send_can_message(initialliseCmd[idx], 8, publish_data+zeroing_data)
+                rospy.loginfo("Command \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
+                    % (wheel, self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
+                self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
 
     def locomotion_control(self, goal):
         # Append message CAN bus message feedback
@@ -259,11 +149,9 @@ class LocomotionControl(object):
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel orientation
             orientation = LocomotionControl.wrap_message_format(wheelAngleArray[idx]/MAX_ORT)
-            # Convert to bytes
-            data = struct.pack('i',orientation)
             # Send CAN locomotion command
             rospy.loginfo("Command: %s wheel \t Orientation: %d" % (wheel, orientation))
-            sent = self.ci.send_can_message(orientationCmd[idx], 4, data)
+            sent = self.ci.send_can_message(orientationCmd[idx], [orientation])
             self._feedback.sequence.append(sent)
 
         rospy.loginfo('%s: Waiting for orientation feedback' % (self._action_name))
@@ -281,11 +169,9 @@ class LocomotionControl(object):
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel velocity
             velocity = LocomotionControl.wrap_message_format(wheelSpeedArray[idx])
-            # Convert to bytes
-            data = struct.pack('i',velocity)
             # Send CAN locomotion command
             rospy.loginfo("Command: %s wheel \t Velocity: %d" % (wheel, velocity))
-            sent = self.ci.send_can_message(velocityCmd[idx], 4, data)
+            sent = self.ci.send_can_message(velocityCmd[idx], velocity)
             self._feedback.sequence.append(sent)
 
     def get_encoder_odometry(self):
@@ -306,25 +192,25 @@ class LocomotionControl(object):
     def CAN_subscriber(self, event):
         # Check if nodes are initialised
         #if (any(self.ci.listener.activity) and not self.ci.listener.initialised): #TODO change to all
-        if not self.ci.listener.initialised:
-            rospy.loginfo("Initialise CAN nodes")
-            self.CAN_node_initialise()
-            self.ci.listener.initialised = True
+        if not self.ci.listener.lcInitialised:
+            rospy.loginfo("Initialise CAN Drive nodes")
+            self.Drive_node_initialise()
+            self.ci.listener.lcInitialised = True
         else:
             # Check for node activity
-            if any(self.ci.listener.activity):
+            if any(self.ci.listener.activity[1:4]):
                 # Publish odometry message
                 msg = self.get_encoder_odometry() # IMU data message
                 self.encoder_pub.publish(msg)
             else:
                 # Check for node failure
-                if self.ci.listener.initialised:
-                    rospy.loginfo("Error CAN node died")
-                    rospy.loginfo(' '.join(map(str, self.ci.listener.activity)))
+                if self.ci.listener.lcInitialised:
+                    rospy.loginfo("Error CAN Drive node died")
+                    rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:4])))
         # Set node activity in listener
-        self.ci.listener.activity = [0, 0, 0, 0]
+        self.ci.listener.activity[1:4] = [0, 0, 0, 0]
 
-    def CAN_node_initialise(self):
+    def Drive_node_initialise(self):
         # Initialise all driving nodes
         initMsg = MoveCommand()                                 # Initialisation message
         initMsg.SteerPower = True
@@ -345,7 +231,7 @@ Main
 """
 if __name__ == '__main__':
     # Start ROS node
-    rospy.init_node("can_node", anonymous=True)
+    rospy.init_node("locomotion_control", anonymous=True)
 
     # Start ROS action
     server = LocomotionControl(rospy.get_name())
