@@ -1,7 +1,10 @@
 
-
+"""
+Imports
+"""
 from can_protocol import *
 import threading
+import queue
 import can
 import struct
 
@@ -16,56 +19,78 @@ class CAN_Listener(can.Listener):
         self.epsIinitialised    = False
         self.activity           = [0, 0, 0, 0, 0]
         # Electrical Power Supply (EPS)
-        self.motorPower         = False
-        self.sensor_error       = [0, 0, 0, 0, 0]
-        self.crit_current       = [0, 0, 0, 0, 0]
+        #self.sensor_error       = [0, 0, 0, 0, 0]
+        #self.crit_current       = [.0, .0, .0, .0, .0]
         self.current            = [.0, .0, .0, .0, .0]
+        self.epsPowerQueue      = queue.Queue(maxsize=10)           # EPS power switch toggled
+        self.epsMsgQueue        = queue.PriorityQueue(maxsize=10)   # EPS critical current and over-current warning
+        self.count              = 0                                 # Priority queue counter
         # Locomotion Control (LC)
-        self.steer              = [0, 0, 0, 0]
-        self.orientation        = [.0, .0, .0, .0]
+        self.lcSteer = threading.Event()                            # Steering completed feedback
+        #self.steer              = [0, 0, 0, 0]
+        #self.orientation        = [.0, .0, .0, .0]
         self.pulses             = [0, 0, 0, 0]
         self.revolutions        = [0, 0, 0, 0]
+        self.lcMsgQueue         = queue.Queue(maxsize=10)           # Orientation reached feedback
 
-        self.eps = threading.Event()
-        self.lc = threading.Event()
+
+        #self.epsMsgProcessing = threading.Thread(name = "epsMsgProcessingThread" target=self.eps_message_processing, args=(epsMsgQueue,))
+
 
     def on_message_received(self, rxMsg):
         ID = rxMsg.arbitration_id
-        # Extract wheel data from the received CAN message
-        if ID == errorWrn:
-            for idx in range (0, len(currentSensorIndex)):
-                self.sensor_error[idx] = struct.unpack('?', rxMsg.data[idx:idx+1])[0]
-        elif ID == currentWrn:
-            for idx in range (0, len(currentSensorIndex)):
-                self.crit_current[idx] = struct.unpack('?', rxMsg.data[idx:idx+1])[0]
-        elif ID == powerUpt:
-            self.motorPower = struct.unpack('?', rxMsg.data[0])[0]
-        elif ID == currentUpt:
-            idx = struct.unpack('i', rxMsg.data[0:4])[0]
-            if idx ==1:
-                self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0], 2)
-            elif idx < len(self.current):
-                self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0],3)
+        try:
+            # Electrical Power Supply (EPS)
+            if ID == errorWrn:
+                for idx in range (0, len(currentSensorIndex)):
+                    self.sensor_error[idx] = struct.unpack('?', data[idx:idx+1])[0]
+                epsMsgQueue.put([1, self.count, self.sensor_error], block=False)
+                count += 1
+            elif ID == currentWrn:
+                self.epsWarning.aquire()
+                for idx in range (0, len(currentSensorIndex)):
+                    self.crit_current[idx] = struct.unpack('?', data[idx:idx+1])[0]
+                epsMsgQueue.put([2, self.count, self.crit_current], block=False)
+                count += 1
+            elif ID == powerUpt:
+                self.motorPower = struct.unpack('?', data[0])[0]
+                epsPowerQueue.put(self.motorPower, block=False)
+            elif ID == currentUpt:
+                idx = struct.unpack('i', rxMsg.data[0:4])[0]
+                if idx ==1:
+                    self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0], 2)
+                elif idx < len(self.current):
+                    self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0],3)
+                else:
+                    print ("Message Error")
+                self.activity[0] = 1
+
+            # Locomotion Control (LC)
+            elif ID in orientationOdm:
+                idx =  [int(x) for x in orientationOdm].index(ID)
+                orientation = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
+                print("Message Source: %s \t Orientation: %3.3f" % (wheelIndex[idx], orientation))
+                message = [idx, orientation]
+                lcMsgQueue.put(message, block=False)
+                # Update node activity flag
+                self.activity[idx+1] = 1
+            elif ID in velocityOdm:
+                idx =  [int(x) for x in velocityOdm].index(ID)
+                self.pulses[idx] = struct.unpack('i', rxMsg.data[0:4])[0]
+                self.revolutions[idx] = struct.unpack('i', rxMsg.data[4:8])[0]
+                print("Message Source: %s \t Pulses: %d \t Revolutions: %d" % (wheelIndex[idx], self.pulses[idx], self.revolutions[idx]))
+                # Update node activity flag
+                self.activity[idx+1] = 1
             else:
-                print ("Message Error")
-            self.activity[0] = 1
-        elif ID in orientationOdm:
-            idx =  [int(x) for x in orientationOdm].index(ID)
-            self.orientation[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
-            # Set position reached flag
-            self.steer[idx] = 1
-            print("Message Source: %s \t Orientation: %3.3f" % (wheelIndex[idx], self.orientation[idx]))
-            # Update node activity flag
-            self.activity[idx] = 1
-        elif ID in velocityOdm:
-            idx =  [int(x) for x in velocityOdm].index(ID)
-            self.pulses[idx] = struct.unpack('i', rxMsg.data[0:4])[0]
-            self.revolutions[idx] = struct.unpack('i', rxMsg.data[4:8])[0]
-            print("Message Source: %s \t Pulses: %d \t Revolutions: %d" % (wheelIndex[idx], self.pulses[idx], self.revolutions[idx]))
-            # Update node activity flag
-            self.activity[idx+1] = 1
-        else:
-            print("Message ID %d not in known list" % ID)
+                print("Message ID %d not in known list" % ID)
+        except queue.Full:
+            print("Message queue full")
+
+    def eps_message_processing(self, messageQueue)
+        # Get top message from message Queue
+        message = epsMsgQueue.get()
+
+        epsMsgQueue.task_done()
 
     @staticmethod
     def unwrap_message_format(value, type):

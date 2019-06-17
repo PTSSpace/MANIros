@@ -22,6 +22,7 @@ import rospy
 import actionlib
 import time
 import threading
+import queue
 
 # Import CAN protocol parameters
 from can_protocol import *
@@ -114,7 +115,7 @@ class LocomotionControl(object):
 
         rospy.loginfo("Adapter: I've heard x:%d \t y:%d \t rot:%d - translating..." % (goal.command.xSpeed, goal.command.ySpeed, goal.command.rotationAngle))
         # Clear orientation feedback  flags
-        self.ci.listener.steer = [0, 0, 0, 0]
+        steer = [0, 0, 0, 0]
         # Convert velocity twist messages to individual wheel velocity and orientation
         [wheelSpeedArray, wheelAngleArray] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
 
@@ -155,13 +156,18 @@ class LocomotionControl(object):
             self._feedback.sequence.append(sent)
 
         rospy.loginfo('%s: Waiting for orientation feedback' % (self._action_name))
-        while not any(self.ci.listener.steer): #TODO change to all
+        while not any(steer):#any(self.ci.listener.steer): #TODO change to all
+            try:
+                [idx, orientation] = self.ci.listener.lcMsgQueue.get()
+                epsMsgQueue.task_done()
+                steer[idx] = orientation
+            except queue.Empty:
+                rospy.loginfo("Message queue empty")
             if (self._as.is_preempt_requested() or rospy.is_shutdown()):
                 rospy.loginfo('%s: Preempted' % self._action_name)
                 self._as.set_preempted()
                 success = False
                 break
-            r.sleep()
         return success
 
     def velocity_control(self, wheelSpeedArray):

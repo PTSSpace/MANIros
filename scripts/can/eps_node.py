@@ -79,7 +79,14 @@ class LocomotionControl(object):
             sent = self.ci.send_can_message(powerCmd, [self.motorPower])
             self._feedback.sequence.append(sent)
         rospy.loginfo('%s: Waiting EPS feedback' % (self._action_name))
-        while not (self.motorPower == self.ci.listener.motorPower):
+
+        while (True):
+        	try:
+                self.motorPower = self.ci.listener.epsPowerQueue.get(block=False)
+                epsMsgQueue.task_done()
+                break
+            except queue.Empty:
+                rospy.loginfo("Message queue empty")
             if (self._as.is_preempt_requested() or rospy.is_shutdown()):
                 rospy.loginfo('%s: Preempted' % self._action_name)
                 self._as.set_preempted()
