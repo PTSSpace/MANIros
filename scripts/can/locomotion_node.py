@@ -52,10 +52,11 @@ class LocomotionControl(object):
 
     def __init__(self, name):
         # Switch states
-        self.driveMode = False
-        self.steerMode = False
-        self.publisherMode = False
-        self.driving = False
+        self.lcInitialised      = False
+        self.driveMode          = False
+        self.steerMode          = False
+        self.publisherMode      = False
+        self.driving            = False
 
         # Construct CAN bus interface
         self.ci = CANInterface()
@@ -197,24 +198,22 @@ class LocomotionControl(object):
 
     def CAN_subscriber(self, event):
         # Check if nodes are initialised
-        #if (any(self.ci.listener.activity) and not self.ci.listener.initialised): #TODO change to all
-        if not self.ci.listener.lcInitialised:
+        if not self.lcInitialised:
+            # Check for node failure
+            if any(self.ci.listener.activity[1:4]) == 0:
+                rospy.loginfo("Error CAN Drive node died")
+                rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:4])))
+            # Publish odometry message
+            msg = self.get_encoder_odometry() # IMU data message
+            self.encoder_pub.publish(msg)
+                    # Check for node activity
+        else:
             rospy.loginfo("Initialise CAN Drive nodes")
             self.Drive_node_initialise()
-            self.ci.listener.lcInitialised = True
-        else:
-            # Check for node activity
-            if any(self.ci.listener.activity[1:4]):
-                # Publish odometry message
-                msg = self.get_encoder_odometry() # IMU data message
-                self.encoder_pub.publish(msg)
-            else:
-                # Check for node failure
-                if self.ci.listener.lcInitialised:
-                    rospy.loginfo("Error CAN Drive node died")
-                    rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:4])))
+            self.lcInitialised = True
         # Set node activity in listener
-        self.ci.listener.activity[1:4] = [0, 0, 0, 0]
+        for idx in range (1,5):
+            self.ci.listener.activity[idx] = 0
 
     def Drive_node_initialise(self):
         # Initialise all driving nodes

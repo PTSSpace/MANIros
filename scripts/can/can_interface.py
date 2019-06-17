@@ -15,12 +15,11 @@ class CAN_Listener(can.Listener):
     """CAN Listener class to catch encoder odometry feedback"""
     def __init__(self):
         # Bus feedback variables
-        self.lcInitialised      = False
-        self.epsIinitialised    = False
         self.activity           = [0, 0, 0, 0, 0]
         # Electrical Power Supply (EPS)
-        #self.sensor_error       = [0, 0, 0, 0, 0]
-        #self.crit_current       = [.0, .0, .0, .0, .0]
+        self.motorPower         = False
+        self.sensor_error       = [0, 0, 0, 0, 0]
+        self.crit_current       = [.0, .0, .0, .0, .0]
         self.current            = [.0, .0, .0, .0, .0]
         self.epsPowerQueue      = Queue.Queue(maxsize=10)           # EPS power switch toggled
         self.epsMsgQueue        = Queue.PriorityQueue(maxsize=10)   # EPS critical current and over-current warning
@@ -39,6 +38,7 @@ class CAN_Listener(can.Listener):
 
     def on_message_received(self, rxMsg):
         ID = rxMsg.arbitration_id
+        print("Message received \t ID:%d" % ID )
         try:
             # Electrical Power Supply (EPS)
             if ID == errorWrn:

@@ -46,8 +46,9 @@ class LocomotionControl(object):
 
     def __init__(self, name):
         # Switch states
-        self.motorPower = False
-        self.publisherMode = False
+        self.epsInitialised		= False
+        self.motorPower 		= False
+        self.publisherMode 		= False
 
         # Construct CAN bus interface
         self.ci = CANInterface()
@@ -103,22 +104,19 @@ class LocomotionControl(object):
 
     def CAN_subscriber(self, event):
         # Check if node is initialised
-        #if (any(self.ci.listener.activity) and not self.ci.listener.initialised): #TODO change to all
-        if not self.ci.listener.epsInitialised:
+        if not self.epsInitialised:
+            # Check for node failure
+            if any(self.ci.listener.activity[1:4]) == 0:
+                rospy.loginfo("Error CAN Drive node died")
+                rospy.loginfo(' '.join(map(str, self.ci.listener.activity[0])))
+            # Publish electrical current message
+            msg = self.get_eps_currents() # Current sensor data message
+            self.eps_pub.publish(msg)
+                    # Check for node activity
+        else:
             rospy.loginfo("Initialise CAN EPS node")
             self.EPS_node_initialise()
-            self.ci.listener.epsInitialised = True
-        else:
-            # Check for node activity
-            if self.ci.listener.activity[0]:
-                # Publish odometry message
-                msg = self.get_eps_currents() # IMU data message
-                self.eps_pub.publish(msg)
-            else:
-                # Check for node failure
-                if self.ci.listener.epsInitialised:
-                    rospy.loginfo("Error CAN EPS node died")
-                    rospy.loginfo(' '.join(map(str, self.ci.listener.activity[0])))
+            self.epsInitialised = True
         # Set node activity in listener
         self.ci.listener.activity[0] = 0
 
