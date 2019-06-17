@@ -21,6 +21,7 @@ import rospy
 import actionlib
 import time
 import math
+import Queue
 
 # Import CAN protocol parameters
 from can_protocol import *
@@ -85,7 +86,7 @@ class LocomotionControl(object):
                 self.motorPower = self.ci.listener.epsPowerQueue.get(block=False)
                 epsMsgQueue.task_done()
                 break
-            except queue.Empty:
+            except Queue.Empty:
                 rospy.loginfo("Message queue empty")
             if (self._as.is_preempt_requested() or rospy.is_shutdown()):
                 rospy.loginfo('%s: Preempted' % self._action_name)

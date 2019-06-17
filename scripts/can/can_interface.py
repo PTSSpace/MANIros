@@ -4,7 +4,7 @@ Imports
 """
 from can_protocol import *
 import threading
-import queue
+import Queue
 import can
 import struct
 
@@ -22,8 +22,8 @@ class CAN_Listener(can.Listener):
         #self.sensor_error       = [0, 0, 0, 0, 0]
         #self.crit_current       = [.0, .0, .0, .0, .0]
         self.current            = [.0, .0, .0, .0, .0]
-        self.epsPowerQueue      = queue.Queue(maxsize=10)           # EPS power switch toggled
-        self.epsMsgQueue        = queue.PriorityQueue(maxsize=10)   # EPS critical current and over-current warning
+        self.epsPowerQueue      = Queue.Queue(maxsize=10)           # EPS power switch toggled
+        self.epsMsgQueue        = Queue.PriorityQueue(maxsize=10)   # EPS critical current and over-current warning
         self.count              = 0                                 # Priority queue counter
         # Locomotion Control (LC)
         self.lcSteer = threading.Event()                            # Steering completed feedback
@@ -31,7 +31,7 @@ class CAN_Listener(can.Listener):
         #self.orientation        = [.0, .0, .0, .0]
         self.pulses             = [0, 0, 0, 0]
         self.revolutions        = [0, 0, 0, 0]
-        self.lcMsgQueue         = queue.Queue(maxsize=10)           # Orientation reached feedback
+        self.lcMsgQueue         = Queue.Queue(maxsize=10)           # Orientation reached feedback
 
 
         #self.epsMsgProcessing = threading.Thread(name = "epsMsgProcessingThread" target=self.eps_message_processing, args=(epsMsgQueue,))
@@ -47,7 +47,6 @@ class CAN_Listener(can.Listener):
                 epsMsgQueue.put([1, self.count, self.sensor_error], block=False)
                 count += 1
             elif ID == currentWrn:
-                self.epsWarning.aquire()
                 for idx in range (0, len(currentSensorIndex)):
                     self.crit_current[idx] = struct.unpack('?', data[idx:idx+1])[0]
                 epsMsgQueue.put([2, self.count, self.crit_current], block=False)
@@ -83,14 +82,9 @@ class CAN_Listener(can.Listener):
                 self.activity[idx+1] = 1
             else:
                 print("Message ID %d not in known list" % ID)
-        except queue.Full:
+        except Queue.Full:
             print("Message queue full")
 
-    def eps_message_processing(self, messageQueue)
-        # Get top message from message Queue
-        message = epsMsgQueue.get()
-
-        epsMsgQueue.task_done()
 
     @staticmethod
     def unwrap_message_format(value, type):
@@ -124,8 +118,7 @@ class CANInterface():
 
     @classmethod
     def send_can_message(cls, arbitration_id, values):
-        data = {}
-        length = 0
+        data = b''
         # Convert to bytes
         for x in values:
             # Check data type

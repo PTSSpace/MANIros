@@ -22,7 +22,7 @@ import rospy
 import actionlib
 import time
 import threading
-import queue
+import Queue
 
 # Import CAN protocol parameters
 from can_protocol import *
@@ -60,10 +60,10 @@ class LocomotionControl(object):
         # Construct CAN bus interface
         self.ci = CANInterface()
 
-        t1 = threading.Thread(name='block', 
-                              target=self.wait_for_event,
-                              args=(self.ci.listener.lc,))
-        t1.start()
+        #t1 = threading.Thread(name='block', 
+        #                      target=self.wait_for_event,
+        #                      args=(self.ci.listener.lc,))
+        #t1.start()
 
         # Get ros parameters
         self.rover_length = rospy.get_param("/rover_length")
@@ -94,7 +94,7 @@ class LocomotionControl(object):
         rospy.loginfo("Command \t Steer:%d \t Drive:%d" % (data.SteerPower, data.DrivePower))
         rospy.loginfo("Command \t Publisher:%d \t ZeroEncoders:%d" % (data.Publisher, data.ZeroEncoders))
         for idx, wheel in enumerate(wheelIndex):
-            if (any(data)):
+            if (data.DrivePower or data.SteerPower or data.Publisher or data.ZeroEncoders):
                 # Toggle driving and steering switches
                 if data.DrivePower:
                     self.steerMode = not self.steerMode
@@ -159,9 +159,9 @@ class LocomotionControl(object):
         while not any(steer):#any(self.ci.listener.steer): #TODO change to all
             try:
                 [idx, orientation] = self.ci.listener.lcMsgQueue.get()
-                epsMsgQueue.task_done()
+                lc.MsgQueue.task_done()
                 steer[idx] = orientation
-            except queue.Empty:
+            except Queue.Empty:
                 rospy.loginfo("Message queue empty")
             if (self._as.is_preempt_requested() or rospy.is_shutdown()):
                 rospy.loginfo('%s: Preempted' % self._action_name)
