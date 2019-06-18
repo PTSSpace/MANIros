@@ -44,16 +44,16 @@ class CAN_Listener(can.Listener):
             if ID == errorWrn:
                 for idx in range (0, len(currentSensorIndex)):
                     self.sensor_error[idx] = struct.unpack('?', data[idx:idx+1])[0]
-                epsMsgQueue.put([1, self.count, self.sensor_error], block=False)
+                self.epsMsgQueue.put([1, self.count, self.sensor_error], block=False)
                 count += 1
             elif ID == currentWrn:
                 for idx in range (0, len(currentSensorIndex)):
                     self.crit_current[idx] = struct.unpack('?', data[idx:idx+1])[0]
-                epsMsgQueue.put([2, self.count, self.crit_current], block=False)
+                self.epsMsgQueue.put([2, self.count, self.crit_current], block=False)
                 count += 1
             elif ID == powerUpt:
                 self.motorPower = struct.unpack('?', data[0])[0]
-                epsPowerQueue.put(self.motorPower, block=False)
+                self.epsPowerQueue.put(self.motorPower, block=False)
             elif ID == currentUpt:
                 idx = struct.unpack('i', rxMsg.data[0:4])[0]
                 if idx ==1:
@@ -70,7 +70,7 @@ class CAN_Listener(can.Listener):
                 orientation = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
                 print("Message Source: %s \t Orientation: %3.3f" % (wheelIndex[idx], orientation))
                 message = [idx, orientation]
-                lcMsgQueue.put(message, block=False)
+                self.lcMsgQueue.put(message, block=False)
                 # Update node activity flag
                 self.activity[idx+1] = 1
             elif ID in velocityOdm:

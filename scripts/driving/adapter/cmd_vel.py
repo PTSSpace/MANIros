@@ -19,7 +19,7 @@ Classes
 class CmdVel:
     def __init__(self):
         # Start up action client and wait for action server
-        self.client = actionlib.SimpleActionClient('locomotion_control', LocomotionAction)
+        self.client = actionlib.SimpleActionClient("locomotion_control", LocomotionAction)
         self.client.wait_for_server()
         # Subscribe to publishers
         rospy.Subscriber("move_base/cmd_vel", Twist, callback=self.on_autonomous_cmd)
@@ -56,16 +56,16 @@ class CmdVel:
         rospy.loginfo("Cmd_vel \t x:%f y:%f rot:%f" % (goal.command.xSpeed, goal.command.ySpeed, goal.command.rotationAngle));
 
     def _goal_active(self):
-        rospy.loginfo('Goal transitioned to active state')
+        rospy.loginfo("Goal transitioned to active state")
 
     def _goal_feedback(self, feedback):
-        rospy.loginfo('Goal feedback received: {}'.format(feedback.sequence))
+        rospy.loginfo("Goal feedback received: {}".format(feedback.sequence))
 
     def _goal_done(self, state, result):
-        rospy.loginfo('Goal one done callback triggered')
+        rospy.loginfo("Goal one done callback triggered")
         rospy.loginfo(str(state))
         rospy.loginfo(str(result))
-        rospy.loginfo('Do something result: ' + str(result.sequence))
+        rospy.loginfo("Do something result: " + str(result.sequence))
 
     def shutdown(self):
         self.client.cancel_goal()

@@ -67,9 +67,10 @@ class LocomotionControl(object):
         self._as.start()
 
     def eps_switch(self, data):
-		# EPS command action
-
-		# Append message CAN bus message feedback
+	# EPS command action
+        # Helper variables
+        r = rospy.Rate(100)
+	# Append message CAN bus message feedback
         self._feedback.sequence = []
         rospy.loginfo("Command \t Motors:%d" % (data.MotorPower))
         # Toggle motor power switch
@@ -85,16 +86,16 @@ class LocomotionControl(object):
         while (True):
         	try:
                 self.motorPower = self.ci.listener.epsPowerQueue.get(block=False)
-                epsMsgQueue.task_done()
+                self.ci.listener.epsMsgQueue.task_done()
                 break
             except Queue.Empty:
-                rospy.loginfo("Message queue empty")
+                r.sleep()
+                # rospy.loginfo("Message queue empty")
             if (self._as.is_preempt_requested() or rospy.is_shutdown()):
                 rospy.loginfo('%s: Preempted' % self._action_name)
                 self._as.set_preempted()
                 success = False
                 break
-            r.sleep()
         return success
 
     def get_eps_currents(self):
@@ -104,7 +105,7 @@ class LocomotionControl(object):
 
     def CAN_subscriber(self, event):
         # Check if node is initialised
-        if not self.epsInitialised:
+        if self.epsInitialised:
             # Check for node failure
             if any(self.ci.listener.activity[1:4]) == 0:
                 rospy.loginfo("Error CAN Drive node died")

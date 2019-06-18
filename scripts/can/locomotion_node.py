@@ -116,7 +116,7 @@ class LocomotionControl(object):
 
         rospy.loginfo("Adapter: I've heard x:%d \t y:%d \t rot:%d - translating..." % (goal.command.xSpeed, goal.command.ySpeed, goal.command.rotationAngle))
         # Clear orientation feedback  flags
-        steer = [0, 0, 0, 0]
+        self.steer = [0, 0, 0, 0]
         # Convert velocity twist messages to individual wheel velocity and orientation
         [wheelSpeedArray, wheelAngleArray] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
 
@@ -157,13 +157,14 @@ class LocomotionControl(object):
             self._feedback.sequence.append(sent)
 
         rospy.loginfo('%s: Waiting for orientation feedback' % (self._action_name))
-        while not any(steer):#any(self.ci.listener.steer): #TODO change to all
+        while not any(self.steer):#any(self.ci.listener.steer): #TODO change to all
             try:
-                [idx, orientation] = self.ci.listener.lcMsgQueue.get()
-                lc.MsgQueue.task_done()
-                steer[idx] = orientation
+                [idx, orientation] = self.ci.listener.lcMsgQueue.get(block=False)
+                self.ci.listener.lcMsgQueue.task_done()
+                self.steer[idx] = orientation
             except Queue.Empty:
-                rospy.loginfo("Message queue empty")
+                r.sleep()
+                #rospy.loginfo("Message queue empty")
             if (self._as.is_preempt_requested() or rospy.is_shutdown()):
                 rospy.loginfo('%s: Preempted' % self._action_name)
                 self._as.set_preempted()
@@ -178,7 +179,7 @@ class LocomotionControl(object):
             velocity = LocomotionControl.wrap_message_format(wheelSpeedArray[idx])
             # Send CAN locomotion command
             rospy.loginfo("Command: %s wheel \t Velocity: %d" % (wheel, velocity))
-            sent = self.ci.send_can_message(velocityCmd[idx], velocity)
+            sent = self.ci.send_can_message(velocityCmd[idx], [velocity])
             self._feedback.sequence.append(sent)
 
     def get_encoder_odometry(self):
@@ -186,7 +187,7 @@ class LocomotionControl(object):
         msg = EncoderOdometry()
         msg.pulses = Vector4(*(self.ci.listener.pulses))
         msg.revolutions = Vector4(*(self.ci.listener.revolutions))
-        msg.activity = Vector4(*(self.ci.listener.activity))
+        msg.activity = Vector4(*(self.ci.listener.activity[1:5]))
         return msg
 
     @staticmethod
@@ -198,19 +199,19 @@ class LocomotionControl(object):
 
     def CAN_subscriber(self, event):
         # Check if nodes are initialised
-        if not self.lcInitialised:
+        if self.lcInitialised:
             # Check for node failure
-            if any(self.ci.listener.activity[1:4]) == 0:
+            if any(self.ci.listener.activity[1:5]) == 0:
                 rospy.loginfo("Error CAN Drive node died")
-                rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:4])))
+                rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:5])))
             # Publish odometry message
             msg = self.get_encoder_odometry() # IMU data message
             self.encoder_pub.publish(msg)
                     # Check for node activity
         else:
             rospy.loginfo("Initialise CAN Drive nodes")
-            self.Drive_node_initialise()
             self.lcInitialised = True
+            self.Drive_node_initialise()
         # Set node activity in listener
         for idx in range (1,5):
             self.ci.listener.activity[idx] = 0
