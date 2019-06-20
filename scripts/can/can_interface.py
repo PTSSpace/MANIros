@@ -17,9 +17,6 @@ class CAN_Listener(can.Listener):
         # Bus feedback variables
         self.activity           = [0, 0, 0, 0, 0]
         # Electrical Power Supply (EPS)
-        self.motorPower         = False
-        self.sensor_error       = [0, 0, 0, 0, 0]
-        self.crit_current       = [.0, .0, .0, .0, .0]
         self.current            = [.0, .0, .0, .0, .0]
         self.epsPowerQueue      = Queue.Queue(maxsize=10)           # EPS power switch toggled
         self.epsMsgQueue        = Queue.PriorityQueue(maxsize=10)   # EPS critical current and over-current warning
@@ -38,22 +35,24 @@ class CAN_Listener(can.Listener):
 
     def on_message_received(self, rxMsg):
         ID = rxMsg.arbitration_id
-        print("Message received \t ID:%d" % ID )
+        print("CI \t Message received \t ID:%d" % ID )
         try:
             # Electrical Power Supply (EPS)
             if ID == errorWrn:
+                sensor_error = [0, 0, 0, 0]
                 for idx in range (0, len(currentSensorIndex)):
-                    self.sensor_error[idx] = struct.unpack('?', data[idx:idx+1])[0]
-                self.epsMsgQueue.put([1, self.count, self.sensor_error], block=False)
-                count += 1
+                    sensor_error[idx] = struct.unpack('?', rxMsg.data[idx:idx+1])[0]
+                self.epsMsgQueue.put([1, self.count, sensor_error], block=False)
+                self.count += 1
             elif ID == currentWrn:
+                crit_current = [0, 0, 0, 0]
                 for idx in range (0, len(currentSensorIndex)):
-                    self.crit_current[idx] = struct.unpack('?', data[idx:idx+1])[0]
-                self.epsMsgQueue.put([2, self.count, self.crit_current], block=False)
-                count += 1
+                    crit_current[idx] = struct.unpack('?', rxMsg.data[idx:idx+1])[0]
+                self.epsMsgQueue.put([2, self.count, crit_current], block=False)
+                self.count += 1
             elif ID == powerUpt:
-                self.motorPower = struct.unpack('?', data[0])[0]
-                self.epsPowerQueue.put(self.motorPower, block=False)
+                motorPower = struct.unpack('?', rxMsg.data[0:1])[0]
+                self.epsPowerQueue.put(motorPower, block=False)
             elif ID == currentUpt:
                 idx = struct.unpack('i', rxMsg.data[0:4])[0]
                 if idx ==1:
@@ -61,29 +60,29 @@ class CAN_Listener(can.Listener):
                 elif idx < len(self.current):
                     self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0],3)
                 else:
-                    print ("Message Error")
+                    print ("CI \t Message Error")
                 self.activity[0] = 1
 
             # Locomotion Control (LC)
-            elif ID in orientationOdm:
-                idx =  [int(x) for x in orientationOdm].index(ID)
-                orientation = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[0:4])[0], 0)
-                print("Message Source: %s \t Orientation: %3.3f" % (wheelIndex[idx], orientation))
-                message = [idx, orientation]
+            elif ID in locomotionFb:
+                idx =  [int(x) for x in locomotionFb].index(ID)
+                flag = struct.unpack('?', rxMsg.data[0:1])[0]
+                print("CI \t Message Source: %s \t Locomotion completed: %d" % (wheelIndex[idx], flag))
+                message = [idx, flag]
                 self.lcMsgQueue.put(message, block=False)
                 # Update node activity flag
                 self.activity[idx+1] = 1
-            elif ID in velocityOdm:
-                idx =  [int(x) for x in velocityOdm].index(ID)
+            elif ID in odometryFb:
+                idx =  [int(x) for x in odometryFb].index(ID)
                 self.pulses[idx] = struct.unpack('i', rxMsg.data[0:4])[0]
                 self.revolutions[idx] = struct.unpack('i', rxMsg.data[4:8])[0]
-                print("Message Source: %s \t Pulses: %d \t Revolutions: %d" % (wheelIndex[idx], self.pulses[idx], self.revolutions[idx]))
+                print("CI \t Message Source: %s \t Pulses: %d \t Revolutions: %d" % (wheelIndex[idx], self.pulses[idx], self.revolutions[idx]))
                 # Update node activity flag
                 self.activity[idx+1] = 1
             else:
-                print("Message ID %d not in known list" % ID)
+                print("CI \t Message ID %d not in known list" % ID)
         except Queue.Full:
-            print("Message queue full")
+            print("CI \t Message queue full")
 
 
     @staticmethod
@@ -134,8 +133,8 @@ class CANInterface():
         with cls.lock:
             try:
                 cls.bus.send(txMsg)
-                print("Message sent on {}".format(cls.bus.channel_info))
+                print("CI \t Message sent on {}".format(cls.bus.channel_info))
                 return 1
             except can.CanError:
-                print("Message NOT sent")
+                print("CI \t Message NOT sent")
                 return 0

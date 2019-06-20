@@ -38,8 +38,8 @@ class Teleop:
                     switch.Publisher = data.buttons[1]
                     switch.ZeroEncoders = data.buttons[2]
                     self.lc_switch_pub.publish(switch)
-                    rospy.loginfo("Teleop \t Steer:%d \t Drive:%d" % (switch.SteerPower, switch.DrivePower))
-                    rospy.loginfo("Teleop \t Publisher:%d \t ZeroEncoders:%d" % (switch.Publisher, switch.ZeroEncoders))
+                    rospy.logdebug("TP (out) \t Steer:%d \t Drive:%d" % (switch.SteerPower, switch.DrivePower))
+                    rospy.logdebug("TP (out) \t Publisher:%d \t ZeroEncoders:%d" % (switch.Publisher, switch.ZeroEncoders))
                 self.switch = data.buttons[0:4]
             else:
                 # Move control message
@@ -50,24 +50,18 @@ class Teleop:
                 twist.linear.y = -data.axes[4]
                 twist.angular.z = -data.axes[2]* math.pi/2
                 self.cmd_vel_pub.publish(twist)
-                rospy.loginfo("Teleop \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))
+                rospy.logdebug("TP (out) \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))
         elif (data.buttons[5] == 0 and self.deadman != 0):
             self.deadman = 0
-            rospy.loginfo("Teleop: \t Deadman switch is:%d" % self.deadman)
+            rospy.logdebug("TP \t Deadman switch is:%d" % self.deadman)
             # Move control abort message
             abort = Twist()
             abort.linear.x = 0
             abort.linear.y = 0
             abort.angular.z = 0
             self.cmd_vel_pub.publish(abort)
-            rospy.loginfo("Teleop: \t Abort message sent")
-        '''
-        # Cancel move base goal
-        if data.buttons[2]: # B button
-            rospy.loginfo('Cancelling move_base goal')
-            cancel_msg = GoalID()
-            self.goal_cancel_pub.publish(cancel_msg)
-        '''
+            rospy.logdebug("TP (out) \t Abort message sent")
+
 if __name__ == '__main__':
     rospy.init_node("teleop")
     controller = Teleop()

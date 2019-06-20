@@ -30,6 +30,7 @@ from can_interface import CANInterface
 
 # Import ROS messages
 from maniros.msg import EpsCurrent                                                 	# Electrical power supply measured currents
+from maniros.msg import EpsCommand                                                 	# Electrical power swtich for motors
 # Electrical power supply control action
 from maniros.msg import EpsAction
 from maniros.msg import EpsFeedback
@@ -49,9 +50,15 @@ class LocomotionControl(object):
         self.epsInitialised		= False
         self.motorPower 		= False
         self.publisherMode 		= False
+        self.epsError            = False
 
         # Construct CAN bus interface
         self.ci = CANInterface()
+
+        # EPS warning thread
+        waning_thread = threading.Thread(name='current_warning',
+                              target=self.warning_handler)
+        waning_thread.start()
 
         # EPS electrical current publisher
         self.eps_pub = rospy.Publisher("eps_current", EpsCurrent, queue_size=10)
@@ -66,28 +73,29 @@ class LocomotionControl(object):
         self._as = actionlib.SimpleActionServer(self._action_name, EpsAction, execute_cb=self.eps_switch, auto_start = False)
         self._as.start()
 
-    def eps_switch(self, data):
-	# EPS command action
-        # Helper variables
-        r = rospy.Rate(100)
-	# Append message CAN bus message feedback
-        self._feedback.sequence = []
-        rospy.loginfo("Command \t Motors:%d" % (data.MotorPower))
-        # Toggle motor power switch
-        if (data.MotorPower):
-            self.motorPower = not ci.listener.self.motorPower
-            # Motors start/stop command
-            # Send CAN EPS command
-            rospy.loginfo("Command \t %s wheel \t Motors:%d" % ('eps', self.motorPower))
-            sent = self.ci.send_can_message(powerCmd, [self.motorPower])
-            self._feedback.sequence.append(sent)
-        rospy.loginfo('%s: Waiting EPS feedback' % (self._action_name))
 
+    def warning_handler(self)
         while (True):
         	try:
-                self.motorPower = self.ci.listener.epsPowerQueue.get(block=False)
+                [p, count, values] = self.ci.listener.epsMsgQueue()
+                if p == 1:
+                	rospy.loginfo("EPS \t Eror %d" %(values))
+                	if any(values[1:len(values)]):
+                		rospy.loginfo("EPS \t Emergency motor shutdown")
+                		goal = EpsCommand()
+				        goal.header = rospy.Time.now()
+				        goal.MotorPower = False;
+				        # Send goal to the action server
+				        self.eps_switch(goal)
+                	elif values[0] == 1:
+                		rospy.loginfo("EPS \t Emergency power off imediately!")
+                elif p == 2:
+                	rospy.loginfo("EPS \t Critical current %d" %(values))
+                	if any(values[1:len(values)]):
+                		rospy.loginfo("EPS \t Please reduce motor strain")
+                	elif values[0] == 1:
+                		rospy.loginfo("EPS \t Emergency power off suggested!")
                 self.ci.listener.epsMsgQueue.task_done()
-                break
             except Queue.Empty:
                 r.sleep()
                 # rospy.loginfo("Message queue empty")
@@ -97,6 +105,39 @@ class LocomotionControl(object):
                 success = False
                 break
         return success
+
+    def eps_switch(self, data):
+	# EPS command action
+    # Helper variables
+    r = rospy.Rate(500)
+	# Append message CAN bus message feedback
+        self._feedback.sequence = []
+        rospy.loginfo("EPS (in) \t Motors:%d" % (data.MotorPower))
+        # Toggle motor power switch
+        self.motorPower = data.MotorPower
+        # Motors start/stop command
+        # Send CAN EPS command
+        rospy.loginfo("EPS (out) \t %s wheel \t Motors:%d" % ('eps', self.motorPower))
+        sent = self.ci.send_can_message(powerCmd, [self.motorPower])
+        self._feedback.sequence.append(sent)
+        rospy.loginfo('EPS \t %s: Waiting for EPS feedback' % (self._action_name))
+
+        while (True):
+        	try:
+                motorPower = self.ci.listener.epsPowerQueue.get(block=False)
+                self.ci.listener.epsPowerQueue.task_done()
+                rospy.loginfo("EPS \t Motor power sitched %d" motorPower)
+                break
+            except Queue.Empty:
+                r.sleep()
+                # rospy.loginfo("Message queue empty")
+            if (self._as.is_preempt_requested() or rospy.is_shutdown()):
+                rospy.loginfo("EPS %s: Preempted" % self._action_name)
+                self._as.set_preempted()
+                success = False
+                break
+        return success
+
 
     def get_eps_currents(self):
         # Get message values from listener
