@@ -1,0 +1,22 @@
+<launch>
+    <arg name="port" default="/dev/ttyUSB0" />
+    <arg name="baud" default="57600" />
+    <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
+
+    <rosparam command="load" file="$(arg rover_parameters_url)" />
+
+    <node name="locomotion_control_simulation" pkg="maniros" type="locomotion_node_simulation.py" output="screen"/>
+
+    <node name="joy_node" pkg="joy" type="joy_node" output="screen">
+        <param name="dev" type="string" value="/dev/input/js0" />
+        <param name="coalesce_interval" type="double" value="0.1" />
+    </node>
+
+    <node name="teleop" pkg="maniros" type="teleop.py" output="screen">
+        <param name="translation_scale" type="int" value="50" />
+    </node>
+    <node name="cmd_vel" pkg="maniros" type="cmd_vel.py" output="screen"/>
+
+
+
+</launch>

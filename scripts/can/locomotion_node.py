@@ -87,21 +87,21 @@ class LocomotionControl(object):
     def locomotion_switch(self, data):
         # Locomotion commands subscriber callback
         rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
+        if (data.DrivePower or data.SteerPower or data.Publisher or data.ZeroEncoders):
+            # Toggle driving and steering switches
+            if data.DrivePower:
+                self.steerMode = not self.steerMode
+            if data.SteerPower:
+                self.driveMode = not self.driveMode
+            # Toggle publisher switch
+            if data.Publisher:
+                self.publisherMode = not self.publisherMode
+            # Motor start/stop command
+            # Send CAN locomotion command
+            rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
+                % (wheel, self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
         for idx, wheel in enumerate(wheelIndex):
-            if (data.DrivePower or data.SteerPower or data.Publisher or data.ZeroEncoders):
-                # Toggle driving and steering switches
-                if data.DrivePower:
-                    self.steerMode = not self.steerMode
-                if data.SteerPower:
-                    self.driveMode = not self.driveMode
-                # Toggle publisher switch
-                if data.Publisher:
-                    self.publisherMode = not self.publisherMode
-                # Motor start/stop command
-                # Send CAN locomotion command
-                rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
-                    % (wheel, self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
-                self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
+            self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
 
     def locomotion_control(self, goal):
         # Append message CAN bus message feedback
@@ -236,12 +236,12 @@ class LocomotionControl(object):
         else:
             rospy.loginfo("LC \t Initialise CAN Drive nodes")
             self.lcInitialised = True
-            self.Drive_node_initialise()
+            self.drive_node_initialise()
         # Set node activity in listener
         for idx in range (1,5):
             self.ci.listener.activity[idx] = 0
 
-    def Drive_node_initialise(self):
+    def drive_node_initialise(self):
         # Initialise all driving nodes
         initMsg = MoveCommand()                                 # Initialisation message
         initMsg.SteerPower = True

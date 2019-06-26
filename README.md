@@ -51,8 +51,8 @@ Each command further has its own indentifier number to indicate which node it is
 | powerCmd | 0x000 | Power switch command for all motors | OBC| EPS Node | 1 byte | motorPower \[0,1\] (byte 1) |
 | errorWrn | 0x010 | Overcurrent warning for EPS current sensors | EPS Node| OBC | 5 bytes | errorSensor1 \[0,1\] (byte 1) errorSensorB \[0,1\] (byte 1) errorSensorFL \[0,1\] (byte 2) errorSensorRL \[0,1\] (byte 3) errorSensorRR \[0,1\] (byte 4) errorSensorFR \[0,1\] (byte 5) |
 | currentWrn | 0x020 | Critical current warning for EPS current sensors (over 80 percent of max current) | EPS Node| OBC | 5 bytes | critSensor1 \[0,1\] (byte 1) critSensorB \[0,1\] (byte 1) critSensorFL \[0,1\] (byte 2) critSensorRL \[0,1\] (byte 3) critSensorRR \[0,1\] (byte 4) errorSensorFR \[0,1\] (byte 5) |
-| powerFd | 0x030 | Motor power switch status feedback | EPS Node | OBC | 1 byte | motorPower \[0,1\] (byte 1) |
-| currentFd | 0x0E0 | EPS current meassurement feedback/update | EPS Node| OBC | 8 bytes | sensorIdx \[0,3\] (bytes 1 to 4) current \[0..2147483647\] (bytes 5 to 8) |
+| powerFb | 0x030 | Motor power switch status feedback | EPS Node | OBC | 1 byte | motorPower \[0,1\] (byte 1) |
+| currentFb | 0x0E0 | EPS current meassurement feedback/update | EPS Node| OBC | 8 bytes | sensorIdx \[0,3\] (bytes 1 to 4) current \[0..2147483647\] (bytes 5 to 8) |
 | switchCmd | 0x0AX | Switch command for steering/driving motor power and initialisation for odometry publisher and zeroing steering encoders | OBC| Drive Node | 4 bytes | steerMode \[0,1\] (byte 1) driveMode \[0,1\] (byte 2) publisherMode \[0,1\] (byte 3) zeroEncoders \[0,1\] (byte 4) |
 | orientationCmd | 0x0BX | Set orientation command | OBC| Drive Node | 4 bytes | set_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
 | velocityCmd | 0x0CX | Set velocity command | OBC| Drive Node | 4 bytes | set_velocity \[-2147483647..2147483647\] (bytes 1 to 4) |
