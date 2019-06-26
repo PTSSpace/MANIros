@@ -191,3 +191,7 @@ if __name__ == '__main__':
 
 rospy.on_shutdown(server.shutdown)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4ed55eb07c0ffdc3baa510bbb6d10c91d675e948
