@@ -57,14 +57,12 @@ class LocomotionControl(object):
         self.steerMode          = False
         self.publisherMode      = False
         self.driving            = False
+        self.lcError            = False
+        self.wheelSpeed         = [0, 0, 0, 0]
+        self.wheelAngle         = [MAX_ORT, MAX_ORT, MAX_ORT, MAX_ORT]
 
         # Construct CAN bus interface
         self.ci = CANInterface()
-
-        #t1 = threading.Thread(name='block', 
-        #                      target=self.wait_for_event,
-        #                      args=(self.ci.listener.lc,))
-        #t1.start()
 
         # Get ros parameters
         self.rover_length = rospy.get_param("/rover_length")
@@ -83,17 +81,12 @@ class LocomotionControl(object):
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
         self._as.start()
 
-    def wait_for_event(self, e):
-        """Wait for the event to be set before doing anything"""
-        print ('wait_for_event starting')
-        event_is_set = e.wait()
-        print ('event set: %s', event_is_set)
+
 
 
     def locomotion_switch(self, data):
         # Locomotion commands subscriber callback
-        rospy.loginfo("Command \t Steer:%d \t Drive:%d" % (data.SteerPower, data.DrivePower))
-        rospy.loginfo("Command \t Publisher:%d \t ZeroEncoders:%d" % (data.Publisher, data.ZeroEncoders))
+        rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
         for idx, wheel in enumerate(wheelIndex):
             if (data.DrivePower or data.SteerPower or data.Publisher or data.ZeroEncoders):
                 # Toggle driving and steering switches
@@ -106,7 +99,7 @@ class LocomotionControl(object):
                     self.publisherMode = not self.publisherMode
                 # Motor start/stop command
                 # Send CAN locomotion command
-                rospy.loginfo("Command \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
+                rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
                     % (wheel, self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
                 self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
 
@@ -114,73 +107,105 @@ class LocomotionControl(object):
         # Append message CAN bus message feedback
         self._feedback.sequence = []
 
-        rospy.loginfo("Adapter: I've heard x:%d \t y:%d \t rot:%d - translating..." % (goal.command.xSpeed, goal.command.ySpeed, goal.command.rotationAngle))
-        # Clear orientation feedback  flags
-        self.steer = [0, 0, 0, 0]
+        rospy.loginfo("LC (in) \t x:%d \t y:%d \t rot:%d - translating..." % (goal.command.xSpeed, goal.command.ySpeed, goal.command.rotationAngle))
         # Convert velocity twist messages to individual wheel velocity and orientation
-        [wheelSpeedArray, wheelAngleArray] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
+        [wheelSpeed, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
 
-        # Check if rover is currently driving
-        if self.driving:
-            self.velocity_control(wheelSpeedArray)
-            success = self.orientation_control(wheelAngleArray)
+        # Check current locomotion state
+        if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
+            self.driving = any(wheelSpeed)
+            success = self.velocity_control(wheelSpeed)
         else:
-            success = self.orientation_control(wheelAngleArray)
-            if success:
-                self.velocity_control(wheelSpeedArray)
-        self.driving = any(wheelSpeedArray)
+            if self.driving:
+                # Stop before executing new steering comand
+                success = self.velocity_control([0, 0, 0, 0])
+                if success:
+                    self.driving = False
+                    success = self.orientation_control(wheelAngle)
+            else:
+                success = self.orientation_control(wheelAngle)
+            if (success and not (wheelSpeed == [0, 0, 0, 0])):
+                self.driving = True
+                success = self.velocity_control(wheelSpeed)
 
-        # publish the feedback
+        # Publish the feedback
         self._as.publish_feedback(self._feedback)
         if success:
+            self.lcError = False
             if all(self._feedback.sequence):
-                rospy.loginfo('%s: Succeeded' % self._action_name)
-            else:
-                success = False
-                rospy.loginfo('%s: Failed' % self._action_name)
-
+                rospy.loginfo('LC \t %s: Succeeded' % self._action_name)
             self._result.sequence = self._feedback.sequence
             self._as.set_succeeded(self._result)
+        else:
+            # Set error flag
+            self.lcError = True
+            success = False
+            rospy.loginfo('LC \t %s: Failed' % self._action_name)
 
 
-    def orientation_control(self, wheelAngleArray):
-        success = True
+
+    def feedback_wait(self):
         # Helper variables
-        r = rospy.Rate(100)
-        rospy.loginfo('%s: Executing, orientation control' % (self._action_name))
+        r = rospy.Rate(500)
+        # Clear orientation feedback flags
+        feedback = [0, 0, 0, 0]
+        while not any(feedback): #TODO change to all
+                try:
+                    [idx, flag] = self.ci.listener.lcMsgQueue.get(block=False)
+                    self.ci.listener.lcMsgQueue.task_done()
+                    feedback[idx] = flag
+                except Queue.Empty:
+                    r.sleep()
+                    #rospy.loginfo("Message queue empty")
+                if (self._as.is_preempt_requested() or rospy.is_shutdown()):
+                    rospy.loginfo('LC \t %s: Preempted' % self._action_name)
+                    self._as.set_preempted()
+                    break
+        return feedback
+
+    def orientation_control(self, wheelAngle):
+        success = False
+        with self.ci.listener.lcMsgQueue.mutex:         #TODO: change so interrupt handler is not blocked
+            self.ci.listener.lcMsgQueue.queue.clear()
+        rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel orientation
-            orientation = LocomotionControl.wrap_message_format(wheelAngleArray[idx]/MAX_ORT)
+            orientation = LocomotionControl.wrap_message_format(wheelAngle[idx]/MAX_ORT)
             # Send CAN locomotion command
-            rospy.loginfo("Command: %s wheel \t Orientation: %d" % (wheel, orientation))
+            rospy.loginfo("LC (out) \t %s wheel \t Orientation: %d" % (wheel, orientation))
             sent = self.ci.send_can_message(orientationCmd[idx], [orientation])
             self._feedback.sequence.append(sent)
 
-        rospy.loginfo('%s: Waiting for orientation feedback' % (self._action_name))
-        while not any(self.steer):#any(self.ci.listener.steer): #TODO change to all
-            try:
-                [idx, orientation] = self.ci.listener.lcMsgQueue.get(block=False)
-                self.ci.listener.lcMsgQueue.task_done()
-                self.steer[idx] = orientation
-            except Queue.Empty:
-                r.sleep()
-                #rospy.loginfo("Message queue empty")
-            if (self._as.is_preempt_requested() or rospy.is_shutdown()):
-                rospy.loginfo('%s: Preempted' % self._action_name)
-                self._as.set_preempted()
-                success = False
-                break
+        rospy.loginfo('LC \t %s: Waiting for orientation feedback' % (self._action_name))
+        feedback = self.feedback_wait()
+        self._feedback.sequence = self._feedback.sequence + feedback
+        if any(feedback) : #all(self._feedback.sequence): #TODO change to all
+            success = True
+            # Save locomotion state
+            self.wheelAngle = wheelAngle
         return success
 
-    def velocity_control(self, wheelSpeedArray):
-        rospy.loginfo('%s: Executing, velocity control' % (self._action_name))
+    def velocity_control(self, wheelSpeed):
+        success = False
+        with self.ci.listener.lcMsgQueue.mutex:         #TODO: change so interrupt handler is not blocked
+            self.ci.listener.lcMsgQueue.queue.clear()
+        rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel velocity
-            velocity = LocomotionControl.wrap_message_format(wheelSpeedArray[idx])
+            velocity = LocomotionControl.wrap_message_format(wheelSpeed[idx])
             # Send CAN locomotion command
-            rospy.loginfo("Command: %s wheel \t Velocity: %d" % (wheel, velocity))
+            rospy.loginfo("LC (out) \t %s wheel \t Velocity: %d" % (wheel, velocity))
             sent = self.ci.send_can_message(velocityCmd[idx], [velocity])
             self._feedback.sequence.append(sent)
+
+        rospy.loginfo('LC \t %s: Waiting for velocity feedback' % (self._action_name))
+        feedback = self.feedback_wait()
+        self._feedback.sequence = self._feedback.sequence + feedback
+        if any(feedback) : #all(self._feedback.sequence): #TODO change to all
+            success = True
+            # Save locomotion state
+            self.wheelSpeed = wheelSpeed
+        return success
 
     def get_encoder_odometry(self):
         # Get message values from listener
@@ -202,14 +227,14 @@ class LocomotionControl(object):
         if self.lcInitialised:
             # Check for node failure
             if any(self.ci.listener.activity[1:5]) == 0:
-                rospy.loginfo("Error CAN Drive node died")
+                rospy.loginfo("LC \t Error CAN Drive node died")
                 rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:5])))
             # Publish odometry message
             msg = self.get_encoder_odometry() # IMU data message
             self.encoder_pub.publish(msg)
                     # Check for node activity
         else:
-            rospy.loginfo("Initialise CAN Drive nodes")
+            rospy.loginfo("LC \t Initialise CAN Drive nodes")
             self.lcInitialised = True
             self.Drive_node_initialise()
         # Set node activity in listener

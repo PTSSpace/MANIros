@@ -32,7 +32,7 @@ class VectorTranslation:
         :param array: An array with signed ints
         :param threshhold: Noramlize values to a threshhold (default: 1)
         """
-        maxvalue = abs(max(array, key=abs)) # math.sqrt(2)  # 
+        maxvalue = abs(max(array, key=abs)) # math.sqrt(2)
         if maxvalue > threshhold:
             for index, value in enumerate(array):
 				array[index] = (value / maxvalue) * threshhold      # normalise and apply tranlational speed scaling factor
@@ -74,21 +74,21 @@ class VectorTranslation:
             #MISSING
             #reverse speed if necessary, need Implementation of WHEN an angle should be turned
             #this has to be determined by the hardware orientation of the servo
-            if (math.fabs(angle) > (math.pi / 2)): 
+            if (math.fabs(angle) > (math.pi / 2)):
 				angle -= math.copysign(math.pi, angle)
 				speed *= -1
 
-            self.wheelAngleArray.append(angle)
-            self.wheelSpeedArray.append(speed)
+            self.wheelAngle.append(angle)
+            self.wheelSpeed.append(speed)
 
     def translateMoveControl(self, data):
-    	self.wheelAngleArray = []
-        self.wheelSpeedArray = []
+    	self.wheelAngle = []
+        self.wheelSpeed = []
 
         self.calculateRotationFactor(data.rotationAngle)
-        
+
         self.addRotationAndTranslation(data.xSpeed, data.ySpeed)
-        
-        self.normalizeArray(self.wheelSpeedArray)
-        
-        return [self.wheelSpeedArray, self.wheelAngleArray]
+
+        self.normalizeArray(self.wheelSpeed)
+
+        return [self.wheelSpeed, self.wheelAngle]

@@ -60,6 +60,7 @@ catkin_python_setup()
     MoveCommand.msg
     EpsCommand.msg
     EpsCurrent.msg
+    MotorControl.msg
  )
 
 ## Generate services in the 'srv' folder

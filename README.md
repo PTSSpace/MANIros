@@ -36,22 +36,27 @@ Each command further has its own indentifier number to indicate which node it is
 
 ##### ID List
 
-| Wheel location on rover | Indentifier number | ID's |
-|:------------------------|:------------------:|:----:|
-| front_left | 1 | 0xXX1 |
-| rear_left | 2 | 0xXX2 |
-| rear_right | 3 | 0xXX3 |
-| front_right | 4 | 0xXX4 |
+| Position/function on rover | Indentifier number | ID's |
+|:---------------------------|:------------------:|:----:|
+| electrical power supply | 0 | 0xXX0 |
+| front_left wheel | 1 | 0xXX1 |
+| rear_left wheel | 2 | 0xXX2 |
+| rear_right wheel | 3 | 0xXX3 |
+| front_right wheel | 4 | 0xXX4 |
 
 ##### Command List
 
 | Message | ID's | Description | Sender | Receiver | Data length | Data division |
 |:--------|:----:|:-----------:|:------:|:--------:|:-----------:|:-------------:|
-| powerCmd | 0x0AX | Power switch command for steering/driving motor | OBC| Drive Node | 8 byte | steerMode \[0,1\] (bytes 1 to 4) driveMode \[0,1\] (bytes 5 to 8) |
-| initialliseCmd | 0x0BX | Initialisatin command for odometry publisher and zeroing steering encoders | OBC| Drive Node | 8 byte | publisherMode \[0,1\] (bytes 1 to 4) zeroEncoders \[0,1\] (bytes 5 to 8) |
-| orientationCmd | 0x0CX | Set orientation command | OBC| Drive Node | 4 byte | set_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
-| velocityCmd | 0x0DX | Set velocity command | OBC| Drive Node | 4 byte | set_velocity \[-2147483647..2147483647\] (bytes 1 to 4) |
-| orientationOdm | 0x0EX | Odometry feedback for reached steering orientation | Drive Node | OBC | 4 byte | current_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
-| velocityOdm | 0x0FX | Odometry feedback of absolute encoder counts for rover distance traveled | Drive Node | OBC | 8 byte | pulses \[-2147483647..2147483647\] (bytes 1 to 4) revolutions \[-2147483647..2147483647\] (bytes 5 to 8) |
+| powerCmd | 0x000 | Power switch command for all motors | OBC| EPS Node | 1 byte | motorPower \[0,1\] (byte 1) |
+| errorWrn | 0x010 | Overcurrent warning for EPS current sensors | EPS Node| OBC | 5 bytes | errorSensor1 \[0,1\] (byte 1) errorSensorB \[0,1\] (byte 1) errorSensorFL \[0,1\] (byte 2) errorSensorRL \[0,1\] (byte 3) errorSensorRR \[0,1\] (byte 4) errorSensorFR \[0,1\] (byte 5) |
+| currentWrn | 0x020 | Critical current warning for EPS current sensors (over 80 percent of max current) | EPS Node| OBC | 5 bytes | critSensor1 \[0,1\] (byte 1) critSensorB \[0,1\] (byte 1) critSensorFL \[0,1\] (byte 2) critSensorRL \[0,1\] (byte 3) critSensorRR \[0,1\] (byte 4) errorSensorFR \[0,1\] (byte 5) |
+| powerFd | 0x030 | Motor power switch status feedback | EPS Node | OBC | 1 byte | motorPower \[0,1\] (byte 1) |
+| currentFd | 0x0E0 | EPS current meassurement feedback/update | EPS Node| OBC | 8 bytes | sensorIdx \[0,3\] (bytes 1 to 4) current \[0..2147483647\] (bytes 5 to 8) |
+| switchCmd | 0x0AX | Switch command for steering/driving motor power and initialisation for odometry publisher and zeroing steering encoders | OBC| Drive Node | 4 bytes | steerMode \[0,1\] (byte 1) driveMode \[0,1\] (byte 2) publisherMode \[0,1\] (byte 3) zeroEncoders \[0,1\] (byte 4) |
+| orientationCmd | 0x0BX | Set orientation command | OBC| Drive Node | 4 bytes | set_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
+| velocityCmd | 0x0CX | Set velocity command | OBC| Drive Node | 4 bytes | set_velocity \[-2147483647..2147483647\] (bytes 1 to 4) |
+| locomotionFb | 0x0DX | Locomotion task feedback for reached orientation and velocity | Drive Node | OBC | 1 bytes | task_completed (byte 1) [0,1]|
+| odometryFb | 0x0EX | Odometry feedback of absolute encoder counts for rover distance traveled | Drive Node | OBC | 8 bytes | pulses \[-2147483647..2147483647\] (bytes 1 to 4) revolutions \[-2147483647..2147483647\] (bytes 5 to 8) |
 
 **The velocity and orientation are scaled values based on the maximal velocity and orientation, respectively.**
