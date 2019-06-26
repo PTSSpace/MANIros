@@ -50,10 +50,10 @@ class CAN_Listener(can.Listener):
                     crit_current[idx] = struct.unpack('?', rxMsg.data[idx:idx+1])[0]
                 self.epsMsgQueue.put([2, self.count, crit_current], block=False)
                 self.count += 1
-            elif ID == powerFd:
+            elif ID == powerFb:
                 motorPower = struct.unpack('?', rxMsg.data[0:1])[0]
                 self.epsPowerQueue.put(motorPower, block=False)
-            elif ID == currentFd:
+            elif ID == currentFb:
                 idx = struct.unpack('i', rxMsg.data[0:4])[0]
                 if idx ==1:
                     self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0], 2)

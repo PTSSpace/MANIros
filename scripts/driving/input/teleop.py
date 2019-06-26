@@ -63,9 +63,14 @@ class Teleop:
                     self.lc_switch_pub.publish(switch)
                     rospy.logdebug("TP (out) \t Steer:%d \t Drive:%d" % (switch.SteerPower, switch.DrivePower))
                     rospy.logdebug("TP (out) \t Publisher:%d \t ZeroEncoders:%d" % (switch.Publisher, switch.ZeroEncoders))
+<<<<<<< HEAD
                 self.lcSwitch = data.buttons[0:4]
             # Check for locomotion commands
             if (data.axes[2,4,5] != self.lcTwist):
+=======
+                self.switch = data.buttons[0:4]
+            else:
+>>>>>>> 8fc2e8f695aac1911c193431cd4d433d89c2c182
                 # Move control message
                 # adjusting input to right-hand rover coordinate system
                 # seen from above (x - forward, y - left,z - upward)
@@ -75,7 +80,10 @@ class Teleop:
                 twist.angular.z = -data.axes[2]* math.pi/2
                 self.cmd_vel_pub.publish(twist)
                 rospy.logdebug("TP (out) \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))
+<<<<<<< HEAD
                 self.lcTwist
+=======
+>>>>>>> 8fc2e8f695aac1911c193431cd4d433d89c2c182
         elif (data.buttons[5] == 0 and self.deadman != 0):
             self.deadman = 0
             rospy.logdebug("TP \t Deadman switch is:%d" % self.deadman)
@@ -87,6 +95,7 @@ class Teleop:
             self.cmd_vel_pub.publish(abort)
             rospy.logdebug("TP (out) \t Abort message sent")
 
+<<<<<<< HEAD
     def _goal_active(self):
         rospy.logdebug("TP \t Goal transitioned to active state")
 
@@ -102,6 +111,8 @@ class Teleop:
     def shutdown(self):
         self.client.cancel_goal()
 
+=======
+>>>>>>> 8fc2e8f695aac1911c193431cd4d433d89c2c182
 if __name__ == '__main__':
     rospy.init_node("teleop")
     controller = Teleop()
