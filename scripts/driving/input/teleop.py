@@ -70,11 +70,11 @@ class Teleop:
             if ([data.axes[2],data.axes[4],data.axes[5]] != self.lcTwist):
                 # Move control message
                 # adjusting input to right-hand rover coordinate system
-                # seen from above (x - forward, y - left,z - upward)
+                # seen from above (x - forward, y - right,z - downward)
                 twist = Twist()
                 twist.linear.x = data.axes[5]
-                twist.linear.y = -data.axes[4]
-                twist.angular.z = -data.axes[2]* math.pi/2
+                twist.linear.y = data.axes[4]
+                twist.angular.z = data.axes[2]* math.pi/2
                 self.cmd_vel_pub.publish(twist)
                 rospy.logdebug("TP (out) \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))
                 self.lcTwist = [data.axes[2],data.axes[4],data.axes[5]]

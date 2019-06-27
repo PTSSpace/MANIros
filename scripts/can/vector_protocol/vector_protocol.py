@@ -3,8 +3,8 @@
 # Transformation based on right-hand rover coordinate system
 # seen from above
 # x - forward
-# y - left
-# z - upward
+# y - right
+# z - downward
 
 import math
 
