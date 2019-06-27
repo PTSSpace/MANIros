@@ -68,7 +68,7 @@ class LocomotionSimulation(object):
                         rospy.Publisher("/mani/joint_sbl_pos_controller/command", Float64, queue_size=1),
                         rospy.Publisher("/mani/joint_sbr_pos_controller/command", Float64, queue_size=1),
                         rospy.Publisher("/mani/joint_sfr_pos_controller/command", Float64, queue_size=1)]
-
+        """
         # Subscribe to locomotion commands
         self.switch_sub = rospy.Subscriber("teleop/lc_switch", MoveCommand, self.locomotion_switch, queue_size=10)
 
@@ -76,13 +76,14 @@ class LocomotionSimulation(object):
         rospy.loginfo("LC \t Initialise CAN Drive nodes")
         self.lcInitialised = True
         self.drive_node_initialise()
+        """
 
         # Locomotion control action
         self._action_name = name
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
         self._as.start()
 
-
+    """
     def locomotion_switch(self, data):
         # Locomotion commands subscriber callback
         rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
@@ -97,7 +98,7 @@ class LocomotionSimulation(object):
             rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d"
                 % (wheel, self.steerMode, self.driveMode))
             self.vel_pub[idx].publish(0.0)
-
+    """
     def locomotion_control(self, goal):
         # Append message CAN bus message feedback
         self._feedback.sequence = []
@@ -151,8 +152,8 @@ class LocomotionSimulation(object):
         rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt and publish wheel velocity
-            self.vel_pub[idx].publish(wheelAngle[idx]/MAX_ORT)
-            self._feedback.sequence.append(1)
+            self.vel_pub[idx].publish(Float64(wheelAngle[idx]/MAX_ORT))
+            self._feedback.sequence.append(idx+1)
         success = self.check_preempt()
         return success
 
@@ -160,8 +161,8 @@ class LocomotionSimulation(object):
         rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt and publish wheel velocity
-            self.vel_pub[idx].publish(wheelSpeed[idx]*MAX_VEL)
-            self._feedback.sequence.append(1)
+            self.vel_pub[idx].publish(Float64(wheelSpeed[idx]*MAX_VEL))
+            self._feedback.sequence.append(idx+1)
         success = self.check_preempt()
         return success
 
@@ -190,8 +191,3 @@ if __name__ == '__main__':
     rospy.spin()
 
 rospy.on_shutdown(server.shutdown)
-
-<<<<<<< HEAD
-=======
-
->>>>>>> 4ed55eb07c0ffdc3baa510bbb6d10c91d675e948
