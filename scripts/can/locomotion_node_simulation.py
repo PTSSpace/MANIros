@@ -22,6 +22,7 @@ from can_protocol import *
 import rospy
 import actionlib
 import time
+import math
 
 # Import ROS messages
 from std_msgs.msg import Float64
@@ -51,7 +52,7 @@ class LocomotionSimulation(object):
         self.driving            = False
         self.lcError            = False
         self.wheelSpeed         = [0, 0, 0, 0]
-        self.wheelAngle         = [MAX_ORT, MAX_ORT, MAX_ORT, MAX_ORT]
+        self.wheelAngle         = [MAX_ORT*5, MAX_ORT*5, MAX_ORT*5, MAX_ORT*5]
 
         # Get ros parameters
         self.rover_length = rospy.get_param("/rover_length")
@@ -152,8 +153,11 @@ class LocomotionSimulation(object):
         rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt and publish wheel velocity
-            self.vel_pub[idx].publish(Float64(wheelAngle[idx]/MAX_ORT))
+            rospy.loginfo('LC \t %f' % wheelAngle[idx])
+            self.ort_pub[idx].publish(Float64(wheelAngle[idx]))
             self._feedback.sequence.append(idx+1)
+        # Save locomotion state
+        self.wheelAngle = wheelAngle
         success = self.check_preempt()
         return success
 
