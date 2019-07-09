@@ -26,7 +26,7 @@ import math
 
 # Import ROS messages
 from std_msgs.msg import Float64
-from std_msgs.msg import JointState
+from sensor_msgs.msg import JointState
 from maniros.msg import MoveCommand                                                 # Locomotion control switches
 # Locomotion control action
 from maniros.msg import LocomotionAction
