@@ -52,7 +52,7 @@ class LocomotionSimulation(object):
         self.driving            = False
         self.lcError            = False
         self.wheelSpeed         = [0, 0, 0, 0]
-        self.wheelAngle         = [MAX_ORT*5, MAX_ORT*5, MAX_ORT*5, MAX_ORT*5]
+        self.wheelAngle         = [MAX_ORT*5, MAX_ORT*5, MAX_ORT*5, MAX_ORT*5]                      # Imposible position for start orientation
 
         # Get ros parameters
         self.rover_length = rospy.get_param("/rover_length")
@@ -60,15 +60,18 @@ class LocomotionSimulation(object):
 
         # Locomotion control publishers
         # Wheel velocity
-        self.vel_pub = [rospy.Publisher("/mani/joint_wfl_vel_controller/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/joint_wbl_vel_controller/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/joint_wbr_vel_controller/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/joint_wfr_vel_controller/command", Float64, queue_size=1)]
+        self.vel_pub = [rospy.Publisher("/mani/drive_fl_vel/command", Float64, queue_size=1),
+                        rospy.Publisher("/mani/drive_rl_vel/command", Float64, queue_size=1),
+                        rospy.Publisher("/mani/drive_rr_vel/command", Float64, queue_size=1),
+                        rospy.Publisher("/mani/drive_fr_vel/command", Float64, queue_size=1)]
         # Wheel orientation
-        self.ort_pub = [rospy.Publisher("/mani/joint_sfl_pos_controller/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/joint_sbl_pos_controller/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/joint_sbr_pos_controller/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/joint_sfr_pos_controller/command", Float64, queue_size=1)]
+        self.ort_pub = [rospy.Publisher("/mani/steer_fl_ort/command", Float64, queue_size=1),
+                        rospy.Publisher("/mani/steer_rl_ort/command", Float64, queue_size=1),
+                        rospy.Publisher("/mani/steer_rr_ort/command", Float64, queue_size=1),
+                        rospy.Publisher("/mani/steer_fr_ort/command", Float64, queue_size=1)]
+        # Joint velocity and orientation subscriber
+        self.joint_sub = rospy.Subscriber("/mani/joint_states", JointState, self.get_joint_states, queue_size=10)
+
         """
         # Subscribe to locomotion commands
         self.switch_sub = rospy.Subscriber("teleop/lc_switch", MoveCommand, self.locomotion_switch, queue_size=10)
@@ -139,7 +142,10 @@ class LocomotionSimulation(object):
             success = False
             rospy.loginfo('LC \t %s: Failed' % self._action_name)
 
-
+    def get_joint_states(self, data):
+        # Get joint state values from simulation
+        self.wheelAngle = data.position
+        self.wheelSpeed = data.velocity
 
     def check_preempt(self):
         success = True
@@ -150,24 +156,32 @@ class LocomotionSimulation(object):
         return success
 
     def orientation_control(self, wheelAngle):
+        success = True
+        r = rospy.Rate(500)
         rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt and publish wheel velocity
             rospy.loginfo('LC \t %f' % wheelAngle[idx])
             self.ort_pub[idx].publish(Float64(wheelAngle[idx]))
             self._feedback.sequence.append(idx+1)
-        # Save locomotion state
-        self.wheelAngle = wheelAngle
-        success = self.check_preempt()
+        # Check locomotion state
+        while (wheelAngle != self.wheelAngle or success != False):
+            sucess = self.check_preempt()
+            r.sleep()
         return success
 
     def velocity_control(self, wheelSpeed):
+        success = True
+        r = rospy.Rate(500)
         rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt and publish wheel velocity
             self.vel_pub[idx].publish(Float64(wheelSpeed[idx]*MAX_VEL))
             self._feedback.sequence.append(idx+1)
-        success = self.check_preempt()
+        # Check locomotion state
+        while (wheelSpeed != self.wheelSpeed or success != False):
+            sucess = self.check_preempt()
+            r.sleep()
         return success
 
     def drive_node_initialise(self):
