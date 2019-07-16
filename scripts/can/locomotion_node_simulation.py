@@ -46,6 +46,7 @@ class LocomotionSimulation(object):
     _result = LocomotionResult()
 
     def __init__(self, name):
+        self.tollerance         = 0.01
         # Switch states
         self.lcInitialised      = False
         self.driveMode          = False
@@ -145,8 +146,8 @@ class LocomotionSimulation(object):
 
     def get_joint_states(self, data):
         # Get joint state values from simulation
-        self.wheelAngle = data.position
-        self.wheelSpeed = data.velocity
+        self.wheelAngle = data.position[6:10]
+        self.wheelSpeed = data.velocity[2:6]
 
     def check_preempt(self):
         success = True
@@ -166,8 +167,20 @@ class LocomotionSimulation(object):
             self.ort_pub[idx].publish(Float64(wheelAngle[idx]))
             self._feedback.sequence.append(idx+1)
         # Check locomotion state
-        while (wheelAngle != self.wheelAngle or success != False):
-            sucess = self.check_preempt()
+        upperAngle = [0, 0, 0, 0]
+        lowerAngle = [0, 0, 0, 0]
+        for idx, value in enumerate(wheelAngle):
+            upperAngle[idx] = value + 10*self.tollerance
+            lowerAngle[idx] = value - 10*self.tollerance
+        while ((self.wheelAngle > upperAngle) or (self.wheelAngle < lowerAngle)):
+            exit = True
+            success = self.check_preempt()
+            for idx, value in enumerate(self.wheelAngle):
+                if ((value > upperAngle[idx]) or (value <  lowerAngle[idx])):
+                    exit = False
+                #print(lowerAngle[idx], value, upperAngle[idx])
+            if success == False or exit == True:
+                break
             r.sleep()
         return success
 
@@ -180,8 +193,19 @@ class LocomotionSimulation(object):
             self.vel_pub[idx].publish(Float64(wheelSpeed[idx]*MAX_VEL))
             self._feedback.sequence.append(idx+1)
         # Check locomotion state
-        while (wheelSpeed != self.wheelSpeed or success != False):
-            sucess = self.check_preempt()
+        upperSpeed = [0, 0, 0, 0]
+        lowerSpeed = [0, 0, 0, 0]
+        for idx, value in enumerate(wheelSpeed):
+            upperSpeed[idx] = value + self.tollerance
+            lowerSpeed[idx] = value - self.tollerance
+        while ((self.wheelSpeed > upperSpeed) or (self.wheelSpeed < lowerSpeed)):
+            exit = True
+            success = self.check_preempt()
+            for idx, value in enumerate(self.wheelSpeed):
+                if ((value > upperSpeed[idx]) or (value <  lowerSpeed[idx])):
+                    exit = False
+            if success == False or exit == True:
+                break
             r.sleep()
         return success
 

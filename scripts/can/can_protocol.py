@@ -47,5 +47,5 @@ MAX_CUR_B			= 25															# Maximal current on battery current sensor [A]
 MAX_CUR_M			= 12															# Maximal current on motor current sensor [A]
 
 # Set motor parameters
-MAX_VEL     		= 3*math.pi                                                     # Maximal wheel velocity [rad/s]
+MAX_VEL     		= math.pi                                                     # Maximal wheel velocity [rad/s]
 MAX_ORT  			= math.pi/2                                                     # Maximal wheel orientation [rad]
