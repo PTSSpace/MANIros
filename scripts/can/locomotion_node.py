@@ -31,7 +31,7 @@ from can_interface import CANInterface
 
 # Import ROS messages
 from maniros.msg import MoveCommand                                                 # Locomotion control switches
-from maniros.msg import EncoderOdometry                                             # Encoder odometry feedback
+from maniros.msg import EncoderOdometryOld                                             # Encoder odometry feedback
 from maniros.msg import Vector4                                                     # Vector format for wheel messages
 # Locomotion control action
 from maniros.msg import LocomotionAction
@@ -51,6 +51,16 @@ class LocomotionControl(object):
     _result = LocomotionResult()
 
     def __init__(self, name):
+        # Get ros parameters
+        self.rover_length   = rospy.get_param("/rover_length")
+        self.rover_width    = rospy.get_param("/rover_width")
+        MAX_CUR_B           = rospy.get_param("/max_cur_b")             # Maximal current on battery current sensor [A]
+        MAX_CUR_M           = rospy.get_param("/max_cur_m")             # Maximal current on motor current sensor [A]
+        MAX_VEL             = rospy.get_param("/max_vel")               # Maximal wheel velocity [rad/s]
+        MAX_ORT             = rospy.get_param("/max_ort")               # Maximal wheel orientation [rad]
+
+        self.MAX_RATING     = [MAX_VEL, MAX_ORT, MAX_CUR_B, MAX_CUR_M]  # Maximal parameters for motors and sensors
+
         # Switch states
         self.lcInitialised      = False
         self.driveMode          = False
@@ -62,14 +72,10 @@ class LocomotionControl(object):
         self.wheelAngle         = [MAX_ORT, MAX_ORT, MAX_ORT, MAX_ORT]
 
         # Construct CAN bus interface
-        self.ci = CANInterface()
-
-        # Get ros parameters
-        self.rover_length = rospy.get_param("/rover_length")
-        self.rover_width = rospy.get_param("/rover_width")
+        self.ci = CANInterface(MAX_RATING)
 
         # Encoder odometry publisher
-        self.encoder_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
+        self.encoder_pub = rospy.Publisher("encoder_odometry", EncoderOdometryOld, queue_size=10)
         # Subscribe to locomotion commands
         self.switch_sub = rospy.Subscriber("teleop/lc_switch", MoveCommand, self.locomotion_switch, queue_size=10)
 
@@ -170,7 +176,7 @@ class LocomotionControl(object):
         rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel orientation
-            orientation = LocomotionControl.wrap_message_format(wheelAngle[idx]/MAX_ORT)
+            orientation = CAN_Listener.wrap_message_format(wheelAngle[idx]/MAX_ORT)
             # Send CAN locomotion command
             rospy.loginfo("LC (out) \t %s wheel \t Orientation: %d" % (wheel, orientation))
             sent = self.ci.send_can_message(orientationCmd[idx], [orientation])
@@ -192,7 +198,7 @@ class LocomotionControl(object):
         rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel velocity
-            velocity = LocomotionControl.wrap_message_format(wheelSpeed[idx])
+            velocity = CAN_Listener.wrap_message_format(wheelSpeed[idx])
             # Send CAN locomotion command
             rospy.loginfo("LC (out) \t %s wheel \t Velocity: %d" % (wheel, velocity))
             sent = self.ci.send_can_message(velocityCmd[idx], [velocity])
@@ -209,16 +215,21 @@ class LocomotionControl(object):
 
     def get_encoder_odometry(self):
         # Get message values from listener
-        msg = EncoderOdometry()
+        msg = EncoderOdometryOld()
         msg.pulses = Vector4(*(self.ci.listener.pulses))
         msg.revolutions = Vector4(*(self.ci.listener.revolutions))
         msg.activity = Vector4(*(self.ci.listener.activity[1:5]))
         return msg
 
-    @staticmethod
-    def wrap_message_format(value):
-        # Scale to integer number [0..MAX_VALUE]
-        value = int(value) *MAX_VALUE
+
+    def scale_feedback_values(value, type):
+        """
+        - type == 0: Max Orientation
+        - type == 1: Max Velocity
+        - type == 2: Max Current Battery
+        - type == 3: Max Current Motor
+        """
+        value = value * self.MAX_RATING[type]
         return value
 
 

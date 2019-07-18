@@ -22,7 +22,7 @@ class CAN_Listener(can.Listener):
         self.epsMsgQueue        = Queue.PriorityQueue(maxsize=10)   # EPS critical current and over-current warning
         self.count              = 0                                 # Priority queue counter
         # Locomotion Control (LC)
-        self.lcSteer = threading.Event()                            # Steering completed feedback
+        self.lcSteer            = threading.Event()                 # Steering completed feedback
         #self.steer              = [0, 0, 0, 0]
         #self.orientation        = [.0, .0, .0, .0]
         self.pulses             = [0, 0, 0, 0]
@@ -84,23 +84,20 @@ class CAN_Listener(can.Listener):
         except Queue.Full:
             print("CI \t Message queue full")
 
-
     @staticmethod
     def unwrap_message_format(value, type):
         # Scale to float number [0..1]
         value = float(value) /MAX_VALUE
-        if type == 0:
-            value *= MAX_ORT
-        elif type == 1:
-            value *= MAX_VEL
-        elif type == 2:
-            value *= MAX_CUR_B
-        elif type == 3:
-            value *= MAX_CUR_M
+        return value
+
+    @staticmethod
+    def wrap_message_format(value):
+        # Scale to integer number [0..MAX_VALUE]
+        value = int(value) *MAX_VALUE
         return value
 
 
-class CANInterface():
+class CANInterface(MAX_RATING):
     """Interface class for CAN bus"""
     @classmethod
     def __init__(cls):
@@ -110,7 +107,7 @@ class CANInterface():
         cls.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=BITRATE)
 
         # Create listener
-        cls.listener = CAN_Listener()
+        cls.listener = CAN_Listener(MAX_RATING)
         # Add notifyier to call listener periodically
         with cls.lock:
             cls.notifier = can.Notifier(cls.bus, [cls.listener])

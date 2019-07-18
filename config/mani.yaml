@@ -23,3 +23,17 @@ c_imuZ: 0.0
 #c_imuQY: 0.0
 #c_imuQZ: 0.0
 #c_imuQW: 1.0
+
+# Locomotion Control Parameters
+# Driving
+drive_enc_ppr: 8384                     # Drive encoder pulses per revolution
+max_vel: 3.14159265358979323846         # Maximal wheel velocity [rad/s]
+# Steering
+steer_enc_ppr: 8384                     # Steer encoder pulses per revolution
+max_ort: 1.57079632679489661923         # Maximal wheel orientation [rad]
+
+# Elecrical Power Supply Parameters
+# Current Sensors
+# Set EPS parameters
+max_cur_b: 25                           # Maximal current on battery current sensor [A]
+max_cur_m: 12                           # Maximal current on motor current sensor [A]

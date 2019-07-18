@@ -18,7 +18,7 @@ class OdometrySimulation(object):
     def __init__(self, name):
 
         # Joint velocity and orientation subscriber
-        self.joint_sub = rospy.Subscriber("/mani/joint_states", JointState, self.get_joint_states, queue_size=10)
+        self.joint_sub = rospy.Subscriber("encoder_odometry", ???, queue_size=10)
         # Transform broardcaster odom -> base_link 
         self.odom_bcr = tf.TransformBroadcaster()
         # Odometry publisher base_link
@@ -34,6 +34,36 @@ class OdometrySimulation(object):
         self.wheelAngle = data.position[6:10]
         self.wheelSpeed = data.velocity[2:6]
 
+
+"""
+    def get_encoder_odometry(self):
+        # Get message values from listener
+        msg = EncoderOdometry()
+        msg.pulses = Vector4(*(self.ci.listener.pulses))
+        msg.revolutions = Vector4(*(self.ci.listener.revolutions))
+        msg.activity = Vector4(*(self.ci.listener.activity[1:5]))
+        return msg
+"""
+
+
+    def CAN_subscriber(self, event):
+        # Check if nodes are initialised
+        if self.lcInitialised:
+            # Check for node failure
+            if any(self.ci.listener.activity[1:5]) == 0:
+                rospy.loginfo("LC \t Error CAN Drive node died")
+                rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:5])))
+            # Publish odometry message
+            msg = self.get_encoder_odometry() # IMU data message
+            self.encoder_pub.publish(msg)
+                    # Check for node activity
+        else:
+            rospy.loginfo("LC \t Initialise CAN Drive nodes")
+            self.lcInitialised = True
+            self.drive_node_initialise()
+        # Set node activity in listener
+        for idx in range (1,5):
+            self.ci.listener.activity[idx] = 0
 
 
 x = 0.0
