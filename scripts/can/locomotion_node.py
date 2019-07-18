@@ -4,7 +4,7 @@ from __future__ import print_function
 """
 This program provides a ROS node for the can0 bus interface.
 It connects the locomotion nodes to the ROS network.
-Veloctity and general motor commands are forwarded to the drive nodes.
+Velocitity and general motor commands are forwarded to the drive nodes.
 Encoder odometry messages are received from the drive nodes and published to the ROS network.
 
 Subscribed ROS topics:

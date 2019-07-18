@@ -2,17 +2,24 @@
 from __future__ import print_function
 
 """
-This program provides a ROS node for the can0 bus interface.
+This program provides a ROS node for the gazeobo simulation interface.
 It connects the locomotion nodes to the ROS network.
 Veloctity and general motor commands are forwarded to the drive nodes.
-Encoder odometry messages are received from the drive nodes and published to the ROS network.
+Joint state messages are received from the drive nodes and interpreted during the locomotion precedure.
 
 Subscribed ROS topics:
-*   teleop/lc_switch
+*   mani/joint_states
 ROS actions:
 *   locomotion_control
 Published ROS topics:
-*   encoder_odometry
+*   mani/drive_fl_vel/command
+*   mani/drive_rl_vel/command
+*   mani/drive_rr_vel/command
+*   mani/drive_fr_vel/command
+*   mani/steer_fl_ort/command
+*   mani/steer_rl_ort/command
+*   mani/steer_rr_ort/command
+*   mani/steer_fr_ort/command
 """
 
 """
