@@ -55,7 +55,9 @@ catkin_python_setup()
     FILES
     CameraHeadPose.msg
     Vector4.msg
+    Vector4Int.msg
     MoveControl.msg
+    EncoderOdometryOld.msg
     EncoderOdometry.msg
     MoveCommand.msg
     EpsCommand.msg
