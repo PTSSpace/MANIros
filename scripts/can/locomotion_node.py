@@ -98,10 +98,10 @@ class LocomotionControl(object):
                 self.publisherMode = not self.publisherMode
             # Motor start/stop command
             # Send CAN locomotion command
-            rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
+            for idx, wheel in enumerate(wheelIndex):
+                rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
                 % (wheel, self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
-        for idx, wheel in enumerate(wheelIndex):
-            self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
+                self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
 
     def locomotion_control(self, goal):
         # Append message CAN bus message feedback

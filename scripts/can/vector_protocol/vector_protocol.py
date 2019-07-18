@@ -47,7 +47,11 @@ class VectorTranslation:
         #rotation, the scaled rotationDistance is multiplied with the width or length, returning a rotation component
         #amd rotationHeightFactor = r_fac_x (as length is along the x axis)
         #this rotationWidthFactor = r_fac_y
-        self.r_fac = rotation / math.hypot(self.rover_width, self.rover_length)
+
+        # changed from the intial steering protocol
+        # Old: (math.hypot(self.rover_width, self.rover_length)/2)
+        # New: (2)
+        self.r_fac = rotation / 2
         self.r_fac_x = round(self.rover_width * self.r_fac, 4) # why round? because division of floats can lead to test failures 0.2 * 3 = 0.6000000001
         self.r_fac_y = round(self.rover_length * self.r_fac, 4)
 
@@ -64,9 +68,9 @@ class VectorTranslation:
             else: #assigns a positive X Rotation to all right wheels
                 x_calc = self.r_fac_x + x_value
             if 1 <= index <= 2: #assigns a negative Y Rotation to all rear wheels
-                y_calc = -self.r_fac_y + y_value
+                y_calc = self.r_fac_y + y_value
             else: #assigns a positive Y Rotation to all front wheels
-                y_calc= self.r_fac_y + y_value
+                y_calc= -self.r_fac_y + y_value
 
             angle = math.atan2(y_calc, x_calc)
             speed = math.hypot(x_calc, y_calc)

@@ -73,7 +73,7 @@ class Teleop:
                 # seen from above (x - forward, y - right,z - downward)
                 twist = Twist()
                 twist.linear.x = data.axes[5]
-                twist.linear.y = data.axes[4]
+                twist.linear.y = -data.axes[4]
                 twist.angular.z = data.axes[2]* math.pi/2
                 self.cmd_vel_pub.publish(twist)
                 rospy.logdebug("TP (out) \t x:%f \t y:%f \t rot:%f" % (twist.linear.x, twist.linear.y, twist.angular.z))

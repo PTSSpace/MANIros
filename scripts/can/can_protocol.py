@@ -24,6 +24,7 @@ currentFd          	= [0x0E0]                                                   
 currentSensorIndex	= ['battery','front_left', 'rear_left', 'rear_right', 'front_right']
 
 # Locomotion Control (LC)
+
 wheelIndex          = ['front_left', 'rear_left', 'rear_right', 'front_right']      # Wheel location on rover
 switchCmd      		= [0x0B1, 0x0B2, 0x0A3, 0x0B4]                                  # Motor/PID start/stop command, initialization and odometry publisher command
 orientationCmd      = [0x0C1, 0x0C2, 0x0B3, 0x0C4]                                  # Set orientation locomotion command
