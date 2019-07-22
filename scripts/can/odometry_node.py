@@ -6,6 +6,7 @@ from math import sin, cos, pi
 import rospy
 import tf
 from nav_msgs.msg import Odometry
+from maniros.msg import EncoderOdometry
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 
 """
@@ -18,8 +19,8 @@ class OdometrySimulation(object):
     def __init__(self, name):
 
         # Joint velocity and orientation subscriber
-        self.joint_sub = rospy.Subscriber("encoder_odometry", ???, queue_size=10)
-        # Transform broardcaster odom -> base_link 
+        self.joint_sub = rospy.Subscriber("encoder_odometry", EncoderOdometry, queue_size=10)
+        # Transform broardcaster odom -> base_link
         self.odom_bcr = tf.TransformBroadcaster()
         # Odometry publisher base_link
         self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=50)

@@ -69,17 +69,17 @@ class LocomotionSimulation(object):
 
         # Locomotion control publishers
         # Wheel velocity
-        self.vel_pub = [rospy.Publisher("/mani/drive_fl_vel/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/drive_rl_vel/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/drive_rr_vel/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/drive_fr_vel/command", Float64, queue_size=1)]
+        self.vel_pub = [rospy.Publisher("/manisim/drive_fl_vel/command", Float64, queue_size=1),
+                        rospy.Publisher("/manisim/drive_rl_vel/command", Float64, queue_size=1),
+                        rospy.Publisher("/manisim/drive_rr_vel/command", Float64, queue_size=1),
+                        rospy.Publisher("/manisim/drive_fr_vel/command", Float64, queue_size=1)]
         # Wheel orientation
-        self.ort_pub = [rospy.Publisher("/mani/steer_fl_ort/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/steer_rl_ort/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/steer_rr_ort/command", Float64, queue_size=1),
-                        rospy.Publisher("/mani/steer_fr_ort/command", Float64, queue_size=1)]
+        self.ort_pub = [rospy.Publisher("/manisim/steer_fl_ort/command", Float64, queue_size=1),
+                        rospy.Publisher("/manisim/steer_rl_ort/command", Float64, queue_size=1),
+                        rospy.Publisher("/manisim/steer_rr_ort/command", Float64, queue_size=1),
+                        rospy.Publisher("/manisim/steer_fr_ort/command", Float64, queue_size=1)]
         # Joint velocity and orientation subscriber
-        self.joint_sub = rospy.Subscriber("/mani/joint_states", JointState, self.get_joint_states, queue_size=10)
+        self.joint_sub = rospy.Subscriber("/manisim/joint_states", JointState, self.get_joint_states, queue_size=10)
 
         """
         # Subscribe to locomotion commands
