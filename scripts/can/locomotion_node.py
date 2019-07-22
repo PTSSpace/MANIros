@@ -31,8 +31,9 @@ from can_interface import CANInterface
 
 # Import ROS messages
 from maniros.msg import MoveCommand                                                 # Locomotion control switches
-from maniros.msg import EncoderOdometryOld                                             # Encoder odometry feedback
+from maniros.msg import EncoderOdometry                                             # Encoder odometry feedback
 from maniros.msg import Vector4                                                     # Vector format for wheel messages
+from maniros.msg import Vector4Int                                                     # Vector format for wheel messages
 # Locomotion control action
 from maniros.msg import LocomotionAction
 from maniros.msg import LocomotionFeedback
@@ -75,7 +76,7 @@ class LocomotionControl(object):
         self.ci = CANInterface(MAX_RATING)
 
         # Encoder odometry publisher
-        self.encoder_pub = rospy.Publisher("encoder_odometry", EncoderOdometryOld, queue_size=10)
+        self.encoder_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
         # Subscribe to locomotion commands
         self.switch_sub = rospy.Subscriber("teleop/lc_switch", MoveCommand, self.locomotion_switch, queue_size=10)
 
@@ -213,12 +214,14 @@ class LocomotionControl(object):
             self.wheelSpeed = wheelSpeed
         return success
 
+    # TODO: Adjust encoder feedback !!!!!!!!!!!!!!!!!!
     def get_encoder_odometry(self):
         # Get message values from listener
-        msg = EncoderOdometryOld()
-        msg.pulses = Vector4(*(self.ci.listener.pulses))
-        msg.revolutions = Vector4(*(self.ci.listener.revolutions))
-        msg.activity = Vector4(*(self.ci.listener.activity[1:5]))
+        msg = EncoderOdometry()
+        msg.drive_pulses = Vector4Int(*(self.ci.listener.pulses))
+        msg.drive_revolutions = Vector4Int(*(self.ci.listener.revolutions))
+        activity = Vector4Int(*(self.ci.listener.activity[1:5]))
+        msg.drive_velocity = Vector4([0,0,0,0])
         return msg
 
 

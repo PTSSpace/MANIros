@@ -20,7 +20,7 @@ class VectorTranslation:
         """
         self.rover_length = length
         self.rover_width = width
-        self.wheelIndexArray = ['front_left', 'rear_left', "rear_right", "front_right"]
+        self.wheelIndex = ['front_left', 'rear_left', "rear_right", "front_right"]
 
 
     def normalizeArray(self, array, threshhold = 1):
@@ -62,7 +62,7 @@ class VectorTranslation:
         :param x_value: the translation along the X-axis
         :param y_value: the translation along the Y-axis
         """
-        for index, wheel in enumerate(self.wheelIndexArray):
+        for index, wheel in enumerate(self.wheelIndex):
             if index <= 1: #assigns a negativ X Rotation to all left wheels
                 x_calc = -self.r_fac_x + x_value
             else: #assigns a positive X Rotation to all right wheels

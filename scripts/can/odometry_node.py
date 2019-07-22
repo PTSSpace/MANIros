@@ -1,13 +1,37 @@
 #!/usr/bin/env python
 
+"""
+This program provides a ROS node to pusblish odometry from the locomotion encoders.
+Encoder information is receved in the form of pulses and revolution.
+The values are transformed into an absolute rotation and translation of the /base_link frame.
+The odometry forwarded to the navigation stack.
+
+Subscribed ROS topics:
+*   encoder_odometry
+Published ROS topics:
+*   odom
+
+"""
+
+"""
+Imports
+"""
 import math
-from math import sin, cos, pi
 
 import rospy
 import tf
 from nav_msgs.msg import Odometry
 from maniros.msg import EncoderOdometry
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
+
+"""
+Global variables
+"""
+current_time = rospy.Time.now()
+last_time = rospy.Time.now()
+
+PUB_RATE                = 1                                                         # Rate to publish odometry data [Hz]
+wheelIndex          = ['front_left', 'rear_left', 'rear_right', 'front_right']      # Wheel location on rover
 
 """
 Classes
@@ -17,70 +41,71 @@ class OdometrySimulation(object):
 
 
     def __init__(self, name):
+        # Frame transformation odom -> base_link
+        # Start in odom frame origin
+        self.x      = 0.0
+        self.y      = 0.0
+        self.rz     = 0.0
+        self.vx     = 0
+        self.vy     = 0
+        self.wrz    = 0
 
         # Joint velocity and orientation subscriber
-        self.joint_sub = rospy.Subscriber("encoder_odometry", EncoderOdometry, queue_size=10)
+        self.joint_sub = rospy.Subscriber("encoder_odometry", EncoderOdometry, self.get_encoder_values, queue_size=10)
         # Transform broardcaster odom -> base_link
         self.odom_bcr = tf.TransformBroadcaster()
         # Odometry publisher base_link
         self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=50)
 
-
         # Get ros parameters
         self.rover_length = rospy.get_param("/rover_length")
         self.rover_width = rospy.get_param("/rover_width")
 
-    def get_joint_states(self, data):
-        # Get joint state values from simulation
-        self.wheelAngle = data.position[6:10]
-        self.wheelSpeed = data.velocity[2:6]
+
+    def get_encoder_values(self, data):
+        # Get encoder values from encoder_odometry topic
+        self.drive_pulses       = data.drive_pulses                     # Drive encoder pulses
+        self.steer_pulses       = data.steer_pulses                     # Steer encoder pulses
+        self.drive_revolutions  = data.drive_revolutions                # Drive encoder wheel revolutions
+        self.drive_velocity     = data.drive_velocity                   # Drive encoder velocity [pulses per second]
+        self.steer_velocity     = data.steer_velocity                   # Steer encoder velocity [pulses per second]
 
 
-"""
-    def get_encoder_odometry(self):
-        # Get message values from listener
-        msg = EncoderOdometry()
-        msg.pulses = Vector4(*(self.ci.listener.pulses))
-        msg.revolutions = Vector4(*(self.ci.listener.revolutions))
-        msg.activity = Vector4(*(self.ci.listener.activity[1:5]))
-        return msg
-"""
+    def odometry_publisher(self):
+        # Get ros parameters
+        rover_length = rospy.get_param("/rover_length")
+        rover_width = rospy.get_param("/rover_width")
+        DRIVE_ENC_PPR           = rospy.get_param("/drive_enc_ppr")     # Drive encoder pulses per revolution
+        STEER_ENC_PPR           = rospy.get_param("/steer_enc_ppr")     # Steer encoder pulses per revolution
+        MAX_VEL                 = rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
+        MAX_ORT                 = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
+
+        # Individual wheel orientation and velocity
+        # Wheel indexes [front left, rear left, rear right, front right]
+        wheelAngle              = [0, 0, 0, 0]                          # [rad]
+        wheelSpeed              = [0, 0, 0, 0]                          # [rad/s]
+        # Set ROS publisher rate
+        r = rospy.Rate(PUB_RATE)
+        while not rospy.is_shutdown():
+            # Calculate steering angle [rad]
+            wheelAngle = (self.steer_pulses/STEER_ENC_PPR-0.5)*MAX_ORT  # Driving forward 0 rad
+            # Calculate driving velocity [rad/s]
+            wheelSpeed = self.drive_velocity/DRIVE_ENC_PPR*MAX_VEL
+
+            # Compute odometry from individual wheel velocities and orientations
+
+            """
+            Computes the components of the wheel velocity perpendicular to the rover hypotinuse
+            the mean of the oposite perpendicular velocities:
+            * fl and rr
+            * rl and fr
+            provides the rotational component of the wheel velocities.
+            By middling both values the estimation of the roatational part of the locomotion in rz direction is acchieved.
+            """
+            for idx, wheel in enumerate(wheelIndex):
+                perpendicularSpeed = math.cos(wheelAngle(idx)-math.atan2(rover_length/rover_width))
 
 
-    def CAN_subscriber(self, event):
-        # Check if nodes are initialised
-        if self.lcInitialised:
-            # Check for node failure
-            if any(self.ci.listener.activity[1:5]) == 0:
-                rospy.loginfo("LC \t Error CAN Drive node died")
-                rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:5])))
-            # Publish odometry message
-            msg = self.get_encoder_odometry() # IMU data message
-            self.encoder_pub.publish(msg)
-                    # Check for node activity
-        else:
-            rospy.loginfo("LC \t Initialise CAN Drive nodes")
-            self.lcInitialised = True
-            self.drive_node_initialise()
-        # Set node activity in listener
-        for idx in range (1,5):
-            self.ci.listener.activity[idx] = 0
-
-
-x = 0.0
-y = 0.0
-th = 0.0
-
-vx = 0.1
-vy = -0.1
-vth = 0.1
-
-current_time = rospy.Time.now()
-last_time = rospy.Time.now()
-
-r = rospy.Rate(1.0)
-while not rospy.is_shutdown():
-    current_time = rospy.Time.now()
 
     # compute odometry in a typical way given the velocities of the robot
     dt = (current_time - last_time).to_sec()

@@ -57,7 +57,6 @@ catkin_python_setup()
     Vector4.msg
     Vector4Int.msg
     MoveControl.msg
-    EncoderOdometryOld.msg
     EncoderOdometry.msg
     MoveCommand.msg
     EpsCommand.msg
