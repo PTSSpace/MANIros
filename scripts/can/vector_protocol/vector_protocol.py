@@ -52,9 +52,8 @@ class VectorTranslation:
         # Old: (math.hypot(self.rover_width, self.rover_length)/2)
         # New: (2)
         self.r_fac = rotation / 2
-        self.r_fac_x = round(self.rover_width * self.r_fac, 4) # why round? because division of floats can lead to test failures 0.2 * 3 = 0.6000000001
-        self.r_fac_y = round(self.rover_length * self.r_fac, 4)
-
+        self.r_fac_x = self.rover_width * self.r_fac
+        self.r_fac_y = self.rover_length * self.r_fac
 
     def addRotationAndTranslation(self, x_value, y_value):
         """
@@ -71,13 +70,10 @@ class VectorTranslation:
                 y_calc = -self.r_fac_y + y_value
             else: #assigns a positive Y Rotation to all front wheels
                 y_calc= self.r_fac_y + y_value
-
             angle = math.atan2(y_calc, x_calc)
             speed = math.hypot(x_calc, y_calc)
 
-            #MISSING
-            #reverse speed if necessary, need Implementation of WHEN an angle should be turned
-            #this has to be determined by the hardware orientation of the servo
+            #reverse speed and adjust angle to not eceed rotation limits
             if (math.fabs(angle) > (math.pi / 2)):
 				angle -= math.copysign(math.pi, angle)
 				speed *= -1

@@ -178,6 +178,37 @@ class VecProTest(unittest.TestCase):
         
         self.assertEqual(vt.translateMoveControl(ser), [[math.sqrt(2)*x , math.sqrt(2)*x, math.sqrt(2)*x, math.sqrt(2)*x],[angle, angle, angle, angle]])
 
+    def test_rotation_pos_function(self):
+        
+        length = 436.0                                                                                                                                  
+        width = 475.7                                                                                                                                   
+                                                                                                                                                        
+        x = 0.0                                                                                                                                        
+        y = 0.0                                                                                                                                        
+        rz = math.pi/2                                                                                                                                          
+                                                                                                                                                        
+        cmd = geomMsg(x, y, rz)                                                                                                                         
+        vt = VectorTranslation(length, width)                                                                                                           
+                                                                                                                                                        
+        alpha = math.atan2(length,width)                                                                                                               
+        vel = 1 # normalised math.sqrt(2*pow(rz,2)+(math.pow(width,2)+math.pow(length,2))/4)                                                                                                                  
+        self.assertEqual(vt.translateMoveControl(cmd), [[ vel, vel, -vel, -vel],[alpha, -alpha, alpha, -alpha]])
+
+    def test_rotation_neg_function(self):
+
+        length = 436.0
+        width = 475.7
+
+        x = 0.0
+        y = 0.0
+        rz = -math.pi/2                                                                                                           
+
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(length, width)
+
+        alpha = math.atan2(length,width)
+        vel = 1 # normalised math.sqrt(2*pow(rz,2)+(math.pow(width,2)+math.pow(length,2))/4)
+        self.assertEqual(vt.translateMoveControl(cmd), [[ -vel, -vel, vel, vel],[alpha, -alpha, alpha, -alpha]])
 
 if __name__ == '__main__':
     unittest.main()
