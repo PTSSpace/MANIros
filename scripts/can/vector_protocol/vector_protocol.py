@@ -64,13 +64,13 @@ class VectorTranslation:
         """
         for index, wheel in enumerate(self.wheelIndex):
             if index <= 1: #assigns a negativ X Rotation to all left wheels
-                x_calc = -self.r_fac_x + x_value
-            else: #assigns a positive X Rotation to all right wheels
                 x_calc = self.r_fac_x + x_value
+            else: #assigns a positive X Rotation to all right wheels
+                x_calc = -self.r_fac_x + x_value
             if 1 <= index <= 2: #assigns a negative Y Rotation to all rear wheels
-                y_calc = self.r_fac_y + y_value
+                y_calc = -self.r_fac_y + y_value
             else: #assigns a positive Y Rotation to all front wheels
-                y_calc= -self.r_fac_y + y_value
+                y_calc= self.r_fac_y + y_value
 
             angle = math.atan2(y_calc, x_calc)
             speed = math.hypot(x_calc, y_calc)
