@@ -22,18 +22,16 @@ import rospy
 import tf
 from nav_msgs.msg import Odometry
 from maniros.msg import EncoderOdometry
-from maniros.msg import MotorContol
+from maniros.msg import MotorControl
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 
 
 # Velocity based vector protocol
-from vector_protocol.vector_protocol import VectorOdometry
+from vector_protocol.vector_odometry import VectorOdometry
 
 """
 Global variables
 """
-current_time = rospy.Time.now()
-last_time = rospy.Time.now()
 
 PUB_RATE                = 1                                                         # Rate to publish odometry data [Hz]
 wheelIndex              = ['front_left', 'rear_left', 'rear_right', 'front_right']  # Wheel location on rover
@@ -179,7 +177,7 @@ if __name__ == '__main__':
     rospy.init_node("odometry_simulation", anonymous=True)
 
     # Start ROS action
-    server = LocomotionSimulation(rospy.get_name())
+    server = OdometrySimulation(rospy.get_name())
     rospy.spin()
 
 rospy.on_shutdown(server.shutdown)

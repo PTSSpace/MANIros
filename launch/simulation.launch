@@ -2,9 +2,8 @@
     <arg name="port" default="/dev/ttyUSB0" />
     <arg name="baud" default="57600" />
     <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
-
+    
     <rosparam command="load" file="$(arg rover_parameters_url)" />
-
     <node name="locomotion_control" pkg="maniros" type="locomotion_node_simulation.py" output="screen"/>
 
     <node name="joy_node" pkg="joy" type="joy_node" output="screen">

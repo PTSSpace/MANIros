@@ -84,4 +84,7 @@ if __name__ == '__main__':
     encoder = EncoderSimulation()
     rospy.spin()
 
-rospy.on_shutdown(server.shutdown)
+rospy.on_shutdown(encoder.shutdown)
+
+#current_time = rospy.Time.now()
+#last_time = rospy.Time.now()
