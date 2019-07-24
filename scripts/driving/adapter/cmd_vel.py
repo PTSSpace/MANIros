@@ -43,16 +43,16 @@ class CmdVel:
         msg = MoveControl()
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "/cmd_vel";
-        msg.xSpeed = data.linear.x
-        msg.ySpeed = data.linear.y
-        msg.rotationAngle = data.angular.z
+        msg.x = data.linear.x
+        msg.y = data.linear.y
+        msg.rz = data.angular.z
         # Send goal to the action server
         goal = LocomotionGoal(command = msg)
         self.client.send_goal(goal,
                               active_cb=self._goal_active,
                               feedback_cb=self._goal_feedback,
                               done_cb=self._goal_done)
-        rospy.logdebug("CV (out) \t x:%f y:%f rot:%f" % (goal.command.xSpeed, goal.command.ySpeed, goal.command.rotationAngle));
+        rospy.logdebug("CV (out) \t x:%f y:%f rot:%f" % (goal.command.x, goal.command.y, goal.command.rz));
 
     def _goal_active(self):
         rospy.logdebug("CV \t Goal transitioned to active state")

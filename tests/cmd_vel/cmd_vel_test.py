@@ -23,8 +23,8 @@ class CmdVelTest(unittest.TestCase):
             data.xSpeed,
             data.ySpeed
             ))
-        rospy.loginfo("Rotation angle: I've heard rz:%f." % (
-            data.rotationAngle
+        rospy.loginfo("Rotation speed: I've heard rz:%f." % (
+            data.rotationSpeed
             ))
         self.success = True
 

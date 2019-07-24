@@ -6,209 +6,178 @@ from vector_protocol import VectorTranslation
 
 class geomMsg:
     def __init__(self, x, y, rz):
-        self.xSpeed = x
-        self.ySpeed = y
-        self.rotationAngle = rz
+        self.x = x                      # Rover velocity in x-direction [m/s]
+        self.y = y                      # Rover velocity in y-direction [m/s]
+        self.rz = rz                    # Rover rotation velocity [rad]
 
 class VecProTest(unittest.TestCase):
     def __init__(self, *args):
         super(VecProTest, self).__init__(*args)
         self.success = False
+        self.length = 0.436             # [m]
+        self.width = 0.475              # [m]
 
     def test_stop_function(self):
-
-        length = 436.0
-        width = 475.7
-
         x = 0
         y = 0
         rz = 0
 
-        stp = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(stp), [[x , x, x, x],[0, 0, 0, 0]])
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+
+        self.assertEqual(vt.translateMoveControl(cmd), [[x, x, x, x],[0, 0, 0, 0]])
 
     def test_forward_function(self):
-
-        length = 436.0
-        width = 475.7
-
-
         x = 0.3
         y = 0
         rz = 0
 
-        fwd = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(fwd), [[x , x, x, x],[0, 0, 0, 0]])
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+
+        self.assertEqual(vt.translateMoveControl(cmd), [[x, x, x, x],[0, 0, 0, 0]])
 
     def test_drive_l_function(self):
-
-        length = 436.0
-        width = 475.7
-
-
-        x = 0
-        y = 1
-        rz = 0
-
-        drv = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-
-        self.assertEqual(vt.translateMoveControl(drv), [[y , y, y, y],[math.pi/2, math.pi/2, math.pi/2, math.pi/2]])
-
-    def test_drive_r_function(self):
-
-        length = 436.0
-        width = 475.7
-
-
         x = 0
         y = -1
         rz = 0
 
-        drv = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+        vel = vt.roundArray([-y, -y, -y, -y])
+        ort = vt.roundArray([-math.pi/2, -math.pi/2, -math.pi/2, -math.pi/2])
 
-        self.assertEqual(vt.translateMoveControl(drv), [[-y , -y, -y, -y],[-math.pi/2, -math.pi/2, -math.pi/2, -math.pi/2]])
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
+
+    def test_drive_r_function(self):
+        x = 0
+        y = 0.5
+        rz = 0
+
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+        vel = vt.roundArray([y, y, y, y])
+        ort = vt.roundArray([math.pi/2, math.pi/2, math.pi/2, math.pi/2])
+
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
     def test_veer_l_function(self):
-
-        length = 436.0
-        width = 475.7
-
-
-        x = 0
-        y = 0.25
+        x = 0.5
+        y = -0.25
         rz = 0
 
-        ver = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(ver), [[y , y, y, y],[math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)]])
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+        vel = vt.roundArray([math.hypot(x,y), math.hypot(x,y), math.hypot(x,y), math.hypot(x,y)])
+        ort = vt.roundArray([math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)])
+
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
     def test_veer_r_function(self):
-
-        length = 436.0
-        width = 475.7
-
-        x = 0
-        y = -0.75
+        x = 0.5
+        y = 0.7
         rz = 0
 
-        ver = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(ver), [[-y , -y, -y, -y],[math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)]])
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+        vel = vt.roundArray([math.hypot(x,y), math.hypot(x,y), math.hypot(x,y), math.hypot(x,y)])
+        ort = vt.roundArray([math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)])
+
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
     def test_backward_function(self):
-
-        length = 436.0
-        width = 475.7
-
-        x = -1
+        x = -1.5
         y = 0
         rz = 0
 
-        bck = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(bck), [[x , x, x, x],[0, 0, 0, 0]])
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+
+        self.assertEqual(vt.translateMoveControl(cmd), [[-1, -1, -1, -1],[0, 0, 0, 0]])
 
     def test_steer_l_function(self):
-
-        length = 436.0
-        width = 475.7
-
-        x = 1
-        y = 1
-        rz = 0
-
-        ser = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(ser), [[x , x, x, x],[math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)]])
-
-
-    def test_steer_r_function(self):
-
-        length = 436.0
-        width = 475.7
-
         x = 1
         y = -1
         rz = 0
 
-        ser = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
-        
-        self.assertEqual(vt.translateMoveControl(ser), [[x , x, x, x],[math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)]])
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+        vel = vt.roundArray([x, x, x, x])
+        ort = vt.roundArray([math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)])
 
-    def test_backward_l_function(self):
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-        length = 436.0
-        width = 475.7
-
-        x = -1
+    def test_steer_r_function(self):
+        x = 1
         y = 1
         rz = 0
 
-        ser = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+        vel = vt.roundArray([x, x, x, x])
+        ort = vt.roundArray([math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)])
 
-        angle = math.atan2(y,x) - math.pi
-        
-        self.assertEqual(vt.translateMoveControl(ser), [[x , x, x, x],[angle, angle, angle, angle]])
-
-    def test_backward_r_function(self):
-
-        length = 436.0
-        width = 475.7
-
-        x = -0.5
-        y = -0.5
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
+    def test_backward_l_function(self):
+        x = -1
+        y = -1
         rz = 0
 
-        ser = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
 
         angle = math.atan2(y,x) + math.pi
-        
-        self.assertEqual(vt.translateMoveControl(ser), [[math.sqrt(2)*x , math.sqrt(2)*x, math.sqrt(2)*x, math.sqrt(2)*x],[angle, angle, angle, angle]])
+        vel = vt.roundArray([x, x, x, x])
+        ort = vt.roundArray([angle, angle, angle, angle])
 
-    def test_rotation_pos_function(self):
-        
-        length = 436.0                                                                                                                                  
-        width = 475.7                                                                                                                                   
-                                                                                                                                                        
-        x = 0.0                                                                                                                                        
-        y = 0.0                                                                                                                                        
-        rz = math.pi/2                                                                                                                                          
-                                                                                                                                                        
-        cmd = geomMsg(x, y, rz)                                                                                                                         
-        vt = VectorTranslation(length, width)                                                                                                           
-                                                                                                                                                        
-        alpha = math.atan2(length,width)                                                                                                               
-        vel = 1 # normalised math.sqrt(2*pow(rz,2)+(math.pow(width,2)+math.pow(length,2))/4)                                                                                                                  
-        self.assertEqual(vt.translateMoveControl(cmd), [[ vel, vel, -vel, -vel],[alpha, -alpha, alpha, -alpha]])
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-    def test_rotation_neg_function(self):
-
-        length = 436.0
-        width = 475.7
-
-        x = 0.0
-        y = 0.0
-        rz = -math.pi/2                                                                                                           
+    def test_backward_r_function(self):
+        x = -0.5
+        y = 0.5
+        rz = 0
 
         cmd = geomMsg(x, y, rz)
-        vt = VectorTranslation(length, width)
+        vt = VectorTranslation(self.length, self.width)
 
-        alpha = math.atan2(length,width)
-        vel = 1 # normalised math.sqrt(2*pow(rz,2)+(math.pow(width,2)+math.pow(length,2))/4)
-        self.assertEqual(vt.translateMoveControl(cmd), [[ -vel, -vel, vel, vel],[alpha, -alpha, alpha, -alpha]])
+        angle = math.atan2(y,x) - math.pi
+        vel = vt.roundArray([math.sqrt(2)*x, math.sqrt(2)*x, math.sqrt(2)*x, math.sqrt(2)*x])
+        ort = vt.roundArray([angle, angle, angle, angle])
+
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
+
+    def test_rotation_pos_function(self):
+        x = 0.0
+        y = 0.0
+        rz = math.pi/2
+
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+
+        alpha = math.atan2(self.length,self.width)
+        v = rz/2 * math.hypot(self.width,self.length)
+        velocity = vt.normalizeArray([v, v, -v, -v])
+        vel = vt.roundArray(velocity)
+        ort = vt.roundArray([alpha, -alpha, alpha, -alpha])
+
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
+
+
+    def test_rotation_neg_function(self):
+        x = 0.0
+        y = 0.0
+        rz = -math.pi/2
+
+        cmd = geomMsg(x, y, rz)
+        vt = VectorTranslation(self.length, self.width)
+
+        alpha = math.atan2(self.length,self.width)
+        v = rz/2 * math.hypot(self.width,self.length)
+        velocity = vt.normalizeArray([v, v, -v, -v])
+        vel = vt.roundArray(velocity)
+        ort = vt.roundArray([alpha, -alpha, alpha, -alpha])
+
+        self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
 if __name__ == '__main__':
     unittest.main()

@@ -15,12 +15,12 @@ class VectorTranslation:
     def __init__(self, length, width):
         """
         Constructor for the rover vector protocol
-        :param length: The distance between front and back wheels in mm (with the camera being 'front')
-        :param name: The distance between right and left in mm(with the panel tilting 'right/left')
+        :param length: The distance between front and back wheels [m] (with the camera being 'front')
+        :param width: The distance between right and left [m] (with the panel tilting 'right/left')
         """
         self.rover_length = length
         self.rover_width = width
-        self.wheelIndex = ['front_left', 'rear_left', "rear_right", "front_right"]
+        self.wheelIndex = ['front_left', 'rear_left', 'rear_right', 'front_right']
 
 
     def normalizeArray(self, array, threshhold = 1):
@@ -29,13 +29,13 @@ class VectorTranslation:
         threshhold = 1: [1.0, 2.0, -10.0] becomes [0.1, 0.2, -1]
         threshhold = 2: [1.0, 2.0, -10.0] becomes [0.2, 0.4, -2]
         threshhold = 20: [1.0, 2.0, -10.0] stays [1, 2, -10]
-        :param array: An array with signed ints
+        :param array: An array with signed values
         :param threshhold: Noramlize values to a threshhold (default: 1)
         """
         maxvalue = abs(max(array, key=abs)) # math.sqrt(2)
         if maxvalue > threshhold:
-            for index, value in enumerate(array):
-				array[index] = (value / maxvalue) * threshhold      # normalise and apply tranlational speed scaling factor
+            for idx, value in enumerate(array):
+				array[idx] = (value / maxvalue) * threshhold      # normalise and apply tranlational speed scaling factor
         return array
 
     def calculateRotationFactor(self, rotation):
@@ -58,15 +58,15 @@ class VectorTranslation:
     def addRotationAndTranslation(self, x_value, y_value):
         """
         rotationFactor  + translation (the vector xComponent, yComponent) = finalVector
-        :param x_value: the translation along the X-axis
-        :param y_value: the translation along the Y-axis
+        :param x_value: the translation along the X-axis [m/s]
+        :param y_value: the translation along the Y-axis [m/s]
         """
-        for index, wheel in enumerate(self.wheelIndex):
-            if index <= 1: #assigns a negativ X Rotation to all left wheels
+        for idx, wheel in enumerate(self.wheelIndex):
+            if idx <= 1: #assigns a positive X Rotation to all left wheels
                 x_calc = self.r_fac_x + x_value
-            else: #assigns a positive X Rotation to all right wheels
+            else: #assigns a negative X Rotation to all right wheels
                 x_calc = -self.r_fac_x + x_value
-            if 1 <= index <= 2: #assigns a negative Y Rotation to all rear wheels
+            if 1 <= idx <= 2: #assigns a negative Y Rotation to all rear wheels
                 y_calc = -self.r_fac_y + y_value
             else: #assigns a positive Y Rotation to all front wheels
                 y_calc= self.r_fac_y + y_value
@@ -81,14 +81,28 @@ class VectorTranslation:
             self.wheelAngle.append(angle)
             self.wheelSpeed.append(speed)
 
+    def roundArray(self, array, digit = 10):
+        """
+        Rounds all elements of an array to avoid test failures.
+        the specified digit.
+        :param array: An array with signed values
+        :param digit: Specifies the number of floating point to round to
+        """
+        for idx, value in enumerate(array):
+            array[idx] = round(value, digit)
+        return array
+
     def translateMoveControl(self, data):
     	self.wheelAngle = []
         self.wheelSpeed = []
 
-        self.calculateRotationFactor(data.rotationAngle)
+        self.calculateRotationFactor(data.rz)
 
-        self.addRotationAndTranslation(data.xSpeed, data.ySpeed)
+        self.addRotationAndTranslation(data.x, data.y)
 
         self.normalizeArray(self.wheelSpeed)
+
+        self.roundArray(self.wheelSpeed)
+        self.roundArray(self.wheelAngle)
 
         return [self.wheelSpeed, self.wheelAngle]
