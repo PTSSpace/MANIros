@@ -8,7 +8,6 @@ import tf2_ros
 from nav_msgs.msg import Odometry
 from maniros.msg import EncoderOdometry
 
-
 class OdmTest(unittest.TestCase):
     def __init__(self, *args):
         super(OdmTest, self).__init__(*args)
@@ -22,11 +21,12 @@ class OdmTest(unittest.TestCase):
     def test_transformation(self):
         # Create mock encoder message
         enc_msg = EncoderOdometry()
-        enc_msg.drive_pulses       = 0                      # Drive encoder pulses
-        enc_msg.steer_pulses       = 0                      # Steer encoder pulses
-        enc_msg.drive_revolutions  = 0                      # Drive encoder wheel revolutions
-        enc_msg.drive_velocity     = 0                      # Drive encoder velocity [pulses per second]
-        enc_msg.steer_velocity     = 0                      # Steer encoder velocity [pulses per second]
+        enc_msg = EncoderOdometry()
+        enc_msg.drive_pulses       = [0, 0, 0, 0]                      # Drive encoder pulses
+        enc_msg.steer_pulses       = [0, 0, 0, 0]                      # Steer encoder pulses
+        enc_msg.drive_revolutions  = [0, 0, 0, 0]                      # Drive encoder wheel revolutions
+        enc_msg.drive_velocity     = [0, 0, 0, 0]                      # Drive encoder velocity [pulses per second]
+        enc_msg.steer_velocity     = [0, 0, 0, 0]                      # Steer encoder velocity [pulses per second]
         # Publish encoder message
         self.enc_pub.publish(enc_msg)
 
@@ -43,19 +43,20 @@ class OdmTest(unittest.TestCase):
 
     def callback(self, data):
         # Get encoder values from encoder_odometry topic
-        self.pose = data.pose.pose
-        self.twist = data.twist.twist
-        rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s", % (data.header.frame_id, data.child_frame_id))
+        #self.pose = data.pose.pose
+        #self.twist = data.twist.twist
+        #rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s" % (data.header.frame_id, data.child_frame_id))
         self.success = True
 
     def test_odometry_publisher(self):
         # Create mock encoder message
         enc_msg = EncoderOdometry()
-        enc_msg.drive_pulses       = 0                      # Drive encoder pulses
-        enc_msg.steer_pulses       = 0                      # Steer encoder pulses
-        enc_msg.drive_revolutions  = 0                      # Drive encoder wheel revolutions
-        enc_msg.drive_velocity     = 0                      # Drive encoder velocity [pulses per second]
-        enc_msg.steer_velocity     = 0                      # Steer encoder velocity [pulses per second]
+        enc_msg = EncoderOdometry()
+        enc_msg.drive_pulses       = [0, 0, 0, 0]                      # Drive encoder pulses
+        enc_msg.steer_pulses       = [0, 0, 0, 0]                      # Steer encoder pulses
+        enc_msg.drive_revolutions  = [0, 0, 0, 0]                      # Drive encoder wheel revolutions
+        enc_msg.drive_velocity     = [0, 0, 0, 0]                      # Drive encoder velocity [pulses per second]
+        enc_msg.steer_velocity     = [0, 0, 0, 0]                      # Steer encoder velocity [pulses per second]
         # Publish encoder message
         self.enc_pub.publish(enc_msg)
 

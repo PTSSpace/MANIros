@@ -53,8 +53,6 @@ catkin_python_setup()
  add_message_files(
     FILES
     CameraHeadPose.msg
-    Vector4.msg
-    Vector4Int.msg
     MoveControl.msg
     EncoderOdometry.msg
     MoveCommand.msg
