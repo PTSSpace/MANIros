@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   actionlib_msgs
   geometry_msgs
-  tf
   tf2
 )
 

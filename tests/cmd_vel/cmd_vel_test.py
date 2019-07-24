@@ -19,22 +19,22 @@ class CmdVelTest(unittest.TestCase):
         self.success = False
 
     def callback(self, data):
-        rospy.loginfo("Linear speed: I've heard vx:%f vy:%f." % (
-            data.xSpeed,
-            data.ySpeed
+        rospy.loginfo("Linear: I've heard x:%f y:%f." % (
+            data.x,
+            data.y
             ))
-        rospy.loginfo("Rotation speed: I've heard rz:%f." % (
-            data.rotationSpeed
+        rospy.loginfo("Rotation: I've heard rz:%f." % (
+            data.rz
             ))
         self.success = True
 
     def test_teleop_actions(self):
-        
+
         msg = Twist()
         #msg.linear = [0.0]*3
         #msg.angular = [0.0]*3
         msg.linear.x = 1.0
-        msg.linear.y = 0.0         
+        msg.linear.y = 0.0
         msg.angular.z = 0.1
 
         self.pub_teleop.publish(msg)
@@ -47,12 +47,12 @@ class CmdVelTest(unittest.TestCase):
         self.assertTrue(self.success, 'Callback has not been called')
 
     def test_autonomous_actions(self):
-        
+
         msg = Twist()
         #msg.linear = [0.0]*3
         #msg.angular = [0.0]*3
         msg.linear.x = 1.0
-        msg.linear.y = 0.0         
+        msg.linear.y = 0.0
         msg.angular.z = -1.0
 
         timeout_t = time.time() + 10.0 #10 seconds

@@ -19,7 +19,7 @@ Imports
 import math
 
 import rospy
-import tf
+import tf2_ros
 from nav_msgs.msg import Odometry
 from maniros.msg import EncoderOdometry
 from maniros.msg import MotorControl
@@ -62,9 +62,9 @@ class OdometrySimulation(object):
         self.prev_drive_revolutions = 0
 
         # Joint velocity and orientation subscriber
-        self.joint_sub = rospy.Subscriber("encoder_odometry", EncoderOdometry, self.get_encoder_values, queue_size=10)
+        self.enc_sub = rospy.Subscriber("encoder_odometry", EncoderOdometry, self.get_encoder_values, queue_size=10)
         # Transform broardcaster odom -> base_link
-        self.odom_bcr = tf.TransformBroadcaster()
+        self.odom_bcr = tf2_ros.TransformBroadcaster()
         # Odometry publisher base_link
         self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=50)
 
@@ -136,31 +136,28 @@ class OdometrySimulation(object):
             self.prev_drive_pulses = self.drive_pulses
             self.prev_drive_revolutions = self.drive_revolutions
 
-            # Create 6DOF transform from odometry yaw (rz rotation)
-            odom_quat = tf.transformations.quaternion_from_euler(0, 0, rz)
-
-            # first, we'll publish the transform over tf
-            odom_broadcaster.sendTransform(
-                (self.x, self.y, 0.),
-                odom_quat,
-                current_time,
-                "base_link",
-                "odom"
-            )
+            # Publish 6DOF transform from odometry yaw (rz rotation)
+            t = geometry_msgs.msg.TransformStamped()
+            t.header.stamp = rospy.Time.now()
+            t.header.frame_id = "odom"
+            t.child_frame_id = "base_link"
+            t.transform.translation.x = self.x
+            t.transform.translation.y = self.y
+            t.transform.translation.z = 0.0
+            q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.rz)
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
+            self.odom_bcr.sendTransform(t)
 
             # Publish ROS odometry message
             odom = Odometry()
             odom.header.stamp = current_time
             odom.header.frame_id = "odom"
-
-            # Set position
-            odom.pose.pose = Pose(Point(x, y, 0.), Quaternion(*odom_quat))
-
-            # Set velocity
             odom.child_frame_id = "base_link"
+            odom.pose.pose = Pose(Point(x, y, 0.), Quaternion(*odom_quat))
             odom.twist.twist = Twist(Vector3(vx, vy, 0), Vector3(0, 0, vth))
-
-            # Publish Message
             odom_pub.publish(odom)
 
             last_time = current_time
