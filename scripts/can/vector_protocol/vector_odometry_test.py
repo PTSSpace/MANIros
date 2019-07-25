@@ -6,9 +6,11 @@ Imports
 import unittest
 import math
 from vector_odometry import VectorOdometry
+
 """
 Classes
 """
+
 class locomotionMsg:
     def __init__(self, d, s):
         # Wheel indexes [front left, rear left, rear right, front right]
@@ -158,10 +160,10 @@ class VecOdmTest(unittest.TestCase):
         x = 0.0
         y = 0.0
         rz = 2/ math.hypot(self.width,self.length) # math.pi/2
-        beta = math.atan2(self.length,self.width)
+        alpha = math.atan2(self.length,self.width)
         velocity = rz/2 * math.hypot(self.width,self.length)
-        vel = [ velocity, velocity, -velocity, -velocity]
-        ort = [beta, -beta, beta, -beta]
+        vel = [ -velocity, -velocity, velocity, velocity]
+        ort = [-alpha, alpha, -alpha, alpha]
 
         cmd = locomotionMsg(vel, ort)
         vo = VectorOdometry(self.length, self.width)
@@ -174,10 +176,10 @@ class VecOdmTest(unittest.TestCase):
         x = 0.0
         y = 0.0
         rz = -2/ math.hypot(self.width,self.length) # -math.pi/2
-        beta = math.atan2(self.length,self.width)
+        alpha = math.atan2(self.length,self.width)
         velocity = rz/2 * math.hypot(self.width,self.length)
-        vel = [ velocity, velocity, -velocity, -velocity]
-        ort = [beta, -beta, beta, -beta]
+        vel = [ -velocity, -velocity, velocity, velocity]
+        ort = [-alpha, alpha, -alpha, alpha]
 
         cmd = locomotionMsg(vel, ort)
         vo = VectorOdometry(self.length, self.width)

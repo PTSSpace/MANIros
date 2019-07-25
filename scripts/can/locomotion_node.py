@@ -72,7 +72,7 @@ class LocomotionControl(object):
         self.wheelAngle         = [MAX_ORT, MAX_ORT, MAX_ORT, MAX_ORT]
 
         # Construct CAN bus interface
-        self.ci = CANInterface(MAX_RATING)
+        self.ci = CANInterface()
 
         # Encoder odometry publisher
         self.encoder_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)

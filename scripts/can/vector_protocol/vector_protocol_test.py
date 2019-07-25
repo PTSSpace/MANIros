@@ -1,8 +1,16 @@
 #!/usr/bin/env python
 
+"""
+Imports
+"""
 import unittest
 import math
 from vector_protocol import VectorTranslation
+
+
+"""
+Classes
+"""
 
 class geomMsg:
     def __init__(self, x, y, rz):
@@ -156,9 +164,9 @@ class VecProTest(unittest.TestCase):
 
         alpha = math.atan2(self.length,self.width)
         v = rz/2 * math.hypot(self.width,self.length)
-        velocity = vt.normalizeArray([v, v, -v, -v])
+        velocity = vt.normalizeArray([-v, -v, v, v])
         vel = vt.roundArray(velocity)
-        ort = vt.roundArray([alpha, -alpha, alpha, -alpha])
+        ort = vt.roundArray([-alpha, alpha, -alpha, alpha])
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
@@ -173,9 +181,9 @@ class VecProTest(unittest.TestCase):
 
         alpha = math.atan2(self.length,self.width)
         v = rz/2 * math.hypot(self.width,self.length)
-        velocity = vt.normalizeArray([v, v, -v, -v])
+        velocity = vt.normalizeArray([-v, -v, v, v])
         vel = vt.roundArray(velocity)
-        ort = vt.roundArray([alpha, -alpha, alpha, -alpha])
+        ort = vt.roundArray([-alpha, alpha, -alpha, alpha])
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 

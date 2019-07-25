@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 
-# Transformation based on right-hand rover coordinate system
-# seen from above
-# x - forward
-# y - right
-# z - downward
+"""
+This program provides a transformation for individual wheel encoder feedback (wheel coordinates)
+high-level rover odometry (rover coordintes).
+
+Input:
+* wheel distance/velocity and orientation array (driveValue, steerValue)
+Output:
+* rover displacement/velocity in (x,y,rz)
+
+The transformation is based on a right-hand rover coordinate system
+As seen from above:
+x - forward
+y - left
+z - upward
+whereby the wheel indexing is is done in positive roation direction (counter-clockwise).
+['front_left', 'rear_left', 'rear_right', 'front_right']
+"""
 
 import math
 
@@ -23,7 +35,7 @@ class VectorOdometry:
         self.wheelIndex = ['front_left', 'rear_left', 'rear_right', 'front_right']
 
         # Angle between perpendicular velocity/distance to rover hypotinuse and zero steering orientation
-        self.alpha = math.atan2(self.rover_width, self.rover_length)
+        self.beta = math.atan2(self.rover_width, self.rover_length)
 
     def calculateRotationVelocity(self, driveValue, steerValue):
         """
@@ -39,13 +51,13 @@ class VectorOdometry:
         perpendicularValue              = [0, 0, 0, 0]                          # [m/s]
         for idx, wheel in enumerate(self.wheelIndex):
             if  idx == 0:
-                perpendicularValue[idx] = math.cos(math.pi/2-steerValue[idx]-self.alpha)*driveValue[idx]
+                perpendicularValue[idx] = -math.cos(-math.pi/2-steerValue[idx]+self.beta)*driveValue[idx]
             elif idx == 2:
-                perpendicularValue[idx] = -math.cos(math.pi/2-steerValue[idx]-self.alpha)*driveValue[idx]
+                perpendicularValue[idx] = math.cos(-math.pi/2-steerValue[idx]+self.beta)*driveValue[idx]
             elif idx == 1:
-                perpendicularValue[idx] = math.cos(-math.pi/2-steerValue[idx]+self.alpha)*driveValue[idx]
+                perpendicularValue[idx] = -math.cos(math.pi/2-steerValue[idx]-self.beta)*driveValue[idx]                
             elif idx == 3:
-                perpendicularValue[idx] = -math.cos(-math.pi/2-steerValue[idx]+self.alpha)*driveValue[idx]
+                perpendicularValue[idx] = math.cos(math.pi/2-steerValue[idx]-self.beta)*driveValue[idx]                
         # Through the mean of all perpendicular velocities/distances the angular velocity/distance is estimated
         angularValue = sum(perpendicularValue)/len(self.wheelIndex)
         return angularValue
@@ -59,13 +71,13 @@ class VectorOdometry:
         angularValueY = [0, 0, 0, 0]
         for idx, wheel in enumerate(self.wheelIndex):
             if idx <= 1: #assigns a positive X Rotation to all left wheels
-                angularValueX[idx] = math.sin(self.alpha)*angularValue
+                angularValueX[idx] = -math.sin(self.beta)*angularValue
             else: #assigns a negative X Rotation to all right wheels
-                angularValueX[idx] = -math.sin(self.alpha)*angularValue
+                angularValueX[idx] = math.sin(self.beta)*angularValue
             if 1 <= idx <= 2: #assigns a negative Y Rotation to all rear wheels
-                    angularValueY[idx] = -math.cos(self.alpha)*angularValue
+                    angularValueY[idx] = -math.cos(self.beta)*angularValue
             else: #assigns a positive Y Rotation to all front wheels
-                angularValueY[idx] = math.cos(self.alpha)*angularValue
+                angularValueY[idx] = math.cos(self.beta)*angularValue
         return [angularValueX, angularValueY]
 
     def calculateTranslationVector(self, driveValue, steerValue, angularValueX, angularValueY):
@@ -78,17 +90,16 @@ class VectorOdometry:
         :param angularValueY: Y component of the orientation vector indicating the rotational velocity/distance
         """
 
-        # TODO: Check for negative or positive rotation
         translationalSpeedX = [0, 0, 0, 0]
         translationalSpeedY = [0, 0, 0, 0]
         for idx, wheel in enumerate(self.wheelIndex):
-            if idx <= 1: #assigns a positive X Rotation to all left wheels
+            if idx <= 1: 
                 translationalSpeedX[idx] = math.cos(steerValue[idx])*driveValue[idx] - angularValueX[idx]
-            else: #assigns a negative X Rotation to all right wheels
+            else:
                 translationalSpeedX[idx] = math.cos(steerValue[idx])*driveValue[idx] - angularValueX[idx]
-            if 1 <= idx <= 2: #assigns a negative Y Rotation to all rear wheels
+            if 1 <= idx <= 2: 
                 translationalSpeedY[idx] = math.sin(steerValue[idx])*driveValue[idx] - angularValueY[idx]
-            else: #assigns a positive Y Rotation to all front wheels
+            else:
                 translationalSpeedY[idx] = math.sin(steerValue[idx])*driveValue[idx] - angularValueY[idx]
         return [translationalSpeedX, translationalSpeedY]
 

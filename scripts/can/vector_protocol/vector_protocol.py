@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 
-# Transformation based on right-hand rover coordinate system
-# seen from above
-# x - forward
-# y - right
-# z - downward
+"""
+This program provides a transformation for high-level rover commands (rover coordintes)
+to individual wheel commands (wheel coordinates).
 
+Input:
+* rover displacement/velocity in (x,y,rz)
+Output:
+* wheel distance/velocity and orientation array (steerValue, driveValue)
+
+The transformation is based on a right-hand rover coordinate system
+As seen from above:
+x - forward
+y - left
+z - upward
+whereby the wheel indexing is is done in positive roation direction (counter-clockwise).
+['front_left', 'rear_left', 'rear_right', 'front_right']
+"""
+
+"""
+Imports
+"""
 import math
 
 class VectorTranslation:
@@ -32,7 +47,7 @@ class VectorTranslation:
         :param array: An array with signed values
         :param threshhold: Noramlize values to a threshhold (default: 1)
         """
-        maxvalue = abs(max(array, key=abs)) # math.sqrt(2)
+        maxvalue = abs(max(array, key=abs))
         if maxvalue > threshhold:
             for idx, value in enumerate(array):
 				array[idx] = (value / maxvalue) * threshhold      # normalise and apply tranlational speed scaling factor
@@ -63,23 +78,23 @@ class VectorTranslation:
         """
         for idx, wheel in enumerate(self.wheelIndex):
             if idx <= 1: #assigns a positive X Rotation to all left wheels
-                x_calc = self.r_fac_x + x_value
-            else: #assigns a negative X Rotation to all right wheels
                 x_calc = -self.r_fac_x + x_value
+            else: #assigns a negative X Rotation to all right wheels
+                x_calc = self.r_fac_x + x_value
             if 1 <= idx <= 2: #assigns a negative Y Rotation to all rear wheels
                 y_calc = -self.r_fac_y + y_value
             else: #assigns a positive Y Rotation to all front wheels
                 y_calc= self.r_fac_y + y_value
             angle = math.atan2(y_calc, x_calc)
-            speed = math.hypot(x_calc, y_calc)
+            length = math.hypot(x_calc, y_calc)
 
-            #reverse speed and adjust angle to not eceed rotation limits
+            # reverse direction and adjust angle to not eceed rotation limits
             if (math.fabs(angle) > (math.pi / 2)):
 				angle -= math.copysign(math.pi, angle)
-				speed *= -1
+				length *= -1
 
-            self.wheelAngle.append(angle)
-            self.wheelSpeed.append(speed)
+            self.driveValue.append(angle)
+            self.steerValue.append(length)
 
     def roundArray(self, array, digit = 10):
         """
@@ -93,16 +108,16 @@ class VectorTranslation:
         return array
 
     def translateMoveControl(self, data):
-    	self.wheelAngle = []
-        self.wheelSpeed = []
+    	self.driveValue = []
+        self.steerValue = []
 
         self.calculateRotationFactor(data.rz)
 
         self.addRotationAndTranslation(data.x, data.y)
 
-        self.normalizeArray(self.wheelSpeed)
+        self.normalizeArray(self.steerValue)
 
-        self.roundArray(self.wheelSpeed)
-        self.roundArray(self.wheelAngle)
+        self.roundArray(self.steerValue)
+        self.roundArray(self.driveValue)
 
-        return [self.wheelSpeed, self.wheelAngle]
+        return [self.steerValue, self.driveValue]

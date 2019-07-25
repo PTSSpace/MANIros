@@ -97,7 +97,7 @@ class CAN_Listener(can.Listener):
         return value
 
 
-class CANInterface(MAX_RATING):
+class CANInterface():
     """Interface class for CAN bus"""
     @classmethod
     def __init__(cls):
@@ -107,7 +107,7 @@ class CANInterface(MAX_RATING):
         cls.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=BITRATE)
 
         # Create listener
-        cls.listener = CAN_Listener(MAX_RATING)
+        cls.listener = CAN_Listener()
         # Add notifyier to call listener periodically
         with cls.lock:
             cls.notifier = can.Notifier(cls.bus, [cls.listener])
