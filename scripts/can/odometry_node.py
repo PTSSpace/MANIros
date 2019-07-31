@@ -71,13 +71,13 @@ class OdometrySimulation(object):
         self.timer = rospy.Timer(rospy.Duration(1/PUB_RATE), self.odometry_publisher)
 
         # Get ros parameters
-        self.rover_length       = 1#rospy.get_param("/rover_length")      # Rover length [m]
-        self.rover_width        = 1#rospy.get_param("/rover_width")       # Rover width [m]
-        self.DRIVE_ENC_PPR      = 1#rospy.get_param("/drive_enc_ppr")     # Drive encoder pulses per revolution
-        self.STEER_ENC_PPR      = 1#rospy.get_param("/steer_enc_ppr")     # Steer encoder pulses per revolution
-        self.MAX_VEL            = 1#rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
-        self.MAX_ORT            = 1#rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
-        self.wheel_diameter     = 1#rospy.get_param("/wheel_diameter")    # Rover wheel diameter [m]
+        self.rover_length       = rospy.get_param("/rover_length")      # Rover length [m]
+        self.rover_width        = rospy.get_param("/rover_width")       # Rover width [m]
+        self.DRIVE_ENC_PPR      = rospy.get_param("/drive_enc_ppr")     # Drive encoder pulses per revolution
+        self.STEER_ENC_PPR      = rospy.get_param("/steer_enc_ppr")     # Steer encoder pulses per revolution
+        self.MAX_VEL            = rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
+        self.MAX_ORT            = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
+        self.wheel_diameter     = rospy.get_param("/wheel_diameter")    # Rover wheel diameter [m]
 
 
     def get_encoder_values(self, data):

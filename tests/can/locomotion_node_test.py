@@ -3,80 +3,199 @@
 import unittest
 import rospy, rostest
 import time
+import math
 
-from geometry_msgs.msg import Twist
-from sensor_msgs.msg import Joy
-from actionlib_msgs.msg import GoalID
+# Import ROS messages
+from std_msgs.msg import Float64
+from sensor_msgs.msg import JointState
+from maniros.msg import MoveCommand                                                 # Locomotion control switches
+# Locomotion control action
+from maniros.msg import LocomotionAction
+from maniros.msg import LocomotionGoal
 
 
-class TeleopTest(unittest.TestCase):
+class LocSimTest(unittest.TestCase):
     def __init__(self, *args):
-        super(TeleopTest, self).__init__(*args)
+        super(LocSimTest, self).__init__(*args)
         rospy.init_node("test_input", anonymous=True)
-        self.pub = rospy.Publisher("joy", Joy, queue_size=10)
-        rospy.Subscriber("teleop/cmd_vel", Twist, self.vel_callback)
-        rospy.Subscriber("move_base/cancel", GoalID, self.move_callback)
+
+        # Set working parameters
+        self.tollerance         = 0.01                                  # Tollerance for the angle/velocity state
+        self.wheelSpeed         = [0, 0, 0, 0]
+        self.wheelAngle         = [self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5]
+
+        # Start up action client and wait for action server
+        self.client = actionlib.SimpleActionClient("locomotion_control", LocomotionAction)
+        self.client.wait_for_server()
+        # Locomotion control subscriber
+        # Wheel velocity
+        rospy.Subscriber("/manisim/drive_fl_vel/command", Float64, self.drive_fl_vel, queue_size=1),
+        rospy.Subscriber("/manisim/drive_rl_vel/command", Float64, self.drive_rl_vel, queue_size=1),
+        rospy.Subscriber("/manisim/drive_rr_vel/command", Float64, self.drive_rr_vel, queue_size=1),
+        rospy.Subscriber("/manisim/drive_fr_vel/command", Float64, self.drive_fr_vel, queue_size=1)
+        # Wheel orientation
+        rospy.Subscriber("/manisim/steer_fl_ort/command", Float64, self.steer_fl_ort, queue_size=1),
+        rospy.Subscriber("/manisim/steer_rl_ort/command", Float64, self.steer_rl_ort, queue_size=1),
+        rospy.Subscriber("/manisim/steer_rr_ort/command", Float64, self.steer_rr_ort, queue_size=1),
+        rospy.Subscriber("/manisim/steer_fr_ort/command", Float64, self.steer_fr_ort, queue_size=1)
+        # Joint velocity and orientation publisher
+        self.joint_pub = rospy.Publisher("/manisim/joint_states", JointState, queue_size=10)
+
+        # Publish locomotion state commands
+        self.switch_pub = rospy.Publisher("teleop/lc_switch", MoveCommand, queue_size=10)
+
         self.success = False
 
-    def vel_callback(self, data):
-        rospy.loginfo("Twist speed: I've heard vx:%d vy:%d vz:%d." % (
-            data.linear.x,
-            data.linear.y,
-            data.linear.z,
-        ))
-        rospy.loginfo("Twist angle: I've heard rx:%d ry:%d rz:%d." % (
-            data.angular.x,
-            data.angular.y,
-            data.angular.z,
-        ))
+    # Drive callbacks
+    def drive_fl_vel(self, data):
+        self.wheelSpeed[0] = data
+    def drive_rl_vel(self, data):
+        self.wheelSpeed[1] = data
+    def drive_rr_vel(self, data):
+        self.wheelSpeed[2] = data
+    def drive_fr_vel(self, data):
+        self.wheelSpeed[3] = data
+    # Steer callbacks
+    def steer_fl_ort(self, data):
+        self.wheelAngle[0] = data
+    def steer_rl_ort(self, data):
+       self.wheelAngle[1] = data
+    def steer_rr_ort(self, data):
+        self.wheelAngle[2] = data
+    def steer_fr_ort(self, data):
+        self.wheelAngle[3] = data
+
+    def _goal_done(self, state, result):
+        rospy.loginfo("Goal completed" + str(result.sequence))
         self.success = True
 
-    def test_basic_node_actions(self):
-        
-        msg = Joy()
-        msg.axes = [0.0]*6
-        msg.axes[5] = 1.0       
-        msg.axes[4] = 0.0 
-        msg.axes[2] = 1.0
-        msg.buttons = [0]*6
-        msg.buttons[5] = 1      # deadman switch
-        msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = "/vel_teleop_test";
+    def test_locomotion_action(self):
+        # Create move and joint commands
+        mv_msg = MoveControl()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/cmd_vel";
+        mv_msg.x = 0
+        mv_msg.y = 0
+        mv_msg.rz = 0
 
-        self.pub.publish(msg)
-        timeout_t = time.time() + 10.0 #10 seconds
+        jn_msg = JointState()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/manisim";
 
+        # TODO: check message format
+        jn_msg.name = ['camera_head', 'camera_neck' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
+        jn_msg.position = [0, 0, 0, 0, 0, 0]
+        jn_msg.velocity = [0, 0, 0, 0, 0, 0]
+        jn_msg.effort = [0, 0, 0, 0, 0, 0]
+        # Send goal to the action server
+        goal = LocomotionGoal(command = mv_msg)
+        self.client.send_goal(goal, done_cb=self._goal_done)
+        self.joint_pub.publish(jn_msg)
+        timeout_t = time.time() + 10.0  # 10 s
+        rate = rospy.Rate(10)           # 10 Hz
         while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
-            self.pub.publish(msg)
-            time.sleep(0.1)
+            self.client.send_goal(goal, done_cb=self._goal_done)
+            self.joint_pub.publish(jn_msg)
+            rate.sleep()
 
-        self.assertTrue(self.success, 'Callback has not been called')
+        self.assertTrue(self.success, 'Locomotion action was not completed')
 
-    def move_callback(self, data):
-        rospy.loginfo("Time stamp:" + str(data.stamp))
-        rospy.loginfo("Goal id:" + str(data.id))
-        self.success = True
+    def test_stop(self):
+        # Motion commands
+        x = 0
+        y = 0
+        # Create move and joint commands
+        mv_msg = MoveControl()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/cmd_vel";
+        mv_msg.x = x
+        mv_msg.y = z
+        mv_msg.rz = 0
 
-    def test_move_cancel(self):
-        
-        msg = Joy()
-        msg.axes = [0.0]*6
-        msg.axes[5] = 0.0       
-        msg.axes[4] = 0.0 
-        msg.axes[2] = 0.0
-        msg.buttons = [0]*6
-        msg.buttons[2] = 1      # X button
-        msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = "/move_teleop_test";
+        jn_msg = JointState()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/manisim";
 
-        self.pub.publish(msg)
-        timeout_t = time.time() + 10.0 #10 seconds
+        # TODO: check message format
+        jn_msg.name = ['camera_head', 'camera_neck' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
+        jn_msg.position = [0, 0, 0, 0, 0, 0]
+        jn_msg.velocity = [0, 0, 0, 0, 0, 0]
+        jn_msg.effort = [0, 0, 0, 0, 0, 0]
 
+        # Send goal to the action server
+        goal = LocomotionGoal(command = mv_msg)
+        self.client.send_goal(goal)
+        self.joint_pub.publish(jn_msg)
+
+        timeout_t = time.time() + 10.0  # 10 s
+        rate = rospy.Rate(10)           # 10 Hz
+
+        # Check for steer feedback
+        while not rospy.is_shutdown() and time.time() < timeout_t:
+            self.client.send_goal(goal)
+            self.joint_pub.publish(jn_msg)
+            if all(value == 0 in self.wheelAngle):
+                break
+            rate.sleep()
+        # Check for drive feedback
         while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
-            self.pub.publish(msg)
-            time.sleep(0.1)
+            self.joint_pub.publish(jn_msg)
+        self.assertTrue(self.success, 'Locomotion stop action failed')
 
-        self.assertTrue(self.success, 'Callback has not been called')
+
+    def test_motion(self):
+        # Motion commands
+        x = 0.5
+        y = 0.7
+        # Create move and joint commands
+        mv_msg = MoveControl()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/cmd_vel";
+        mv_msg.x = x
+        mv_msg.y = z
+        mv_msg.rz = 0
+
+        jn_msg = JointState()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/manisim";
+
+        # TODO: check message format
+        jn_msg.name = ['camera_head', 'camera_neck' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
+        jn_msg.position = [math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)]
+        jn_msg.velocity = [math.hypot(x,y), math.hypot(x,y), math.hypot(x,y), math.hypot(x,y)]
+        jn_msg.effort = [0, 0, 0, 0, 0, 0]
+
+        # Bound for checking states
+        upperAngle = [0, 0, 0, 0]
+        lowerAngle = [0, 0, 0, 0]
+        upperSpeed = [0, 0, 0, 0]
+        lowerSpeed = [0, 0, 0, 0]
+        for idx, value in enumerate(wheelAngle):
+            upperAngle[idx] = value + 10*self.tollerance
+            lowerAngle[idx] = value - 10*self.tollerance
+            upperSpeed[idx] = value + self.tollerance
+            lowerSpeed[idx] = value - self.tollerance
+
+        # Send goal to the action server
+        goal = LocomotionGoal(command = mv_msg)
+        self.client.send_goal(goal)
+        self.joint_pub.publish(jn_msg)
+
+        timeout_t = time.time() + 10.0  # 10 s
+        rate = rospy.Rate(10)           # 10 Hz
+
+        # Check for steer feedback
+        while not rospy.is_shutdown() and time.time() < timeout_t:
+            self.client.send_goal(goal)
+            self.joint_pub.publish(jn_msg)
+            if ((self.wheelAngle < upperAngle) and (self.wheelAngle > lowerAngle)):
+                break
+            rate.sleep()
+        # Check for drive feedback
+        while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
+            self.joint_pub.publish(jn_msg)
+        if ((self.wheelSpeed > upperSpeed) or (self.wheelSpeed < lowerSpeed)):
+            self.success = False
 
 if __name__ == '__main__':
-    rostest.rosrun('maniros', 'test_teleop', TeleopTest)
+    rostest.rosrun('maniros', 'test_teleop', LocSimTest)

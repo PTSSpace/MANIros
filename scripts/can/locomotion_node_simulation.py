@@ -25,7 +25,6 @@ Published ROS topics:
 """
 Imports
 """
-from can_protocol import *
 import rospy
 import actionlib
 import time
@@ -53,7 +52,14 @@ class LocomotionSimulation(object):
     _result = LocomotionResult()
 
     def __init__(self, name):
-        self.tollerance         = 0.01
+        # Set working parameters
+        self.tollerance         = 0.01                                  # Tollerance for the angle/velocity state
+        # Get ros parameters
+        self.rover_length       = rospy.get_param("/rover_length")      # Rover length [m]
+        self.rover_width        = rospy.get_param("/rover_width")       # Rover width [m]
+        self.MAX_VEL            = rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
+        self.MAX_ORT            = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
+
         # Switch states
         self.lcInitialised      = False
         self.driveMode          = False
@@ -61,11 +67,7 @@ class LocomotionSimulation(object):
         self.driving            = False
         self.lcError            = False
         self.wheelSpeed         = [0, 0, 0, 0]
-        self.wheelAngle         = [MAX_ORT*5, MAX_ORT*5, MAX_ORT*5, MAX_ORT*5]                      # Imposible position for start orientation
-
-        # Get ros parameters
-        self.rover_length = rospy.get_param("/rover_length")
-        self.rover_width = rospy.get_param("/rover_width")
+        self.wheelAngle         = [self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5]                      # Imposible position for start orientation
 
         # Locomotion control publishers
         # Wheel velocity
@@ -81,22 +83,19 @@ class LocomotionSimulation(object):
         # Joint velocity and orientation subscriber
         self.joint_sub = rospy.Subscriber("/manisim/joint_states", JointState, self.get_joint_states, queue_size=10)
 
-        """
-        # Subscribe to locomotion commands
+        # Subscribe to locomotion state commands
         self.switch_sub = rospy.Subscriber("teleop/lc_switch", MoveCommand, self.locomotion_switch, queue_size=10)
 
         # Initialise ROS nodes
-        rospy.loginfo("LC \t Initialise CAN Drive nodes")
-        self.lcInitialised = True
+        rospy.loginfo("LC \t Initialise Simulation Drive nodes")
         self.drive_node_initialise()
-        """
+        self.lcInitialised = True
 
         # Locomotion control action
         self._action_name = name
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
         self._as.start()
 
-    """
     def locomotion_switch(self, data):
         # Locomotion commands subscriber callback
         rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
@@ -106,14 +105,28 @@ class LocomotionSimulation(object):
                 self.steerMode = not self.steerMode
             if data.SteerPower:
                 self.driveMode = not self.driveMode
-        for idx, wheel in enumerate(wheelIndex):
+            # Toggle publisher switch
+            # TODO: does nothing so far
+            if data.Publisher:
+                self.publisherMode = not self.publisherMode
+            # Simulate zeroing encoders
+            self.zero_encoders()
             # Publish locomotion command
-            rospy.loginfo("LC (out) \t %s wheel \t Steer:%d \t Drive:%d"
-                % (wheel, self.steerMode, self.driveMode))
-            self.vel_pub[idx].publish(0.0)
-    """
+            rospy.loginfo("LC (out) \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
+            % (wheel, self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
+            if not self.driveMode:
+                success = self.velocity_control([0, 0, 0, 0])
+
+    def zero_encoders(self):
+        """
+        Simulate zeroing of encoders.
+        Steer all wheel to end position for hard stop.
+        """
+        self.orientation_control([self.MAX_ORT, self.MAX_ORT, self.MAX_ORT, self.MAX_ORT])
+
+
     def locomotion_control(self, goal):
-        # Append message CAN bus message feedback
+        # Append message simulation joint feedback
         self._feedback.sequence = []
 
         rospy.loginfo("LC (in) \t x:%d \t y:%d \t rot:%d - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
@@ -123,19 +136,26 @@ class LocomotionSimulation(object):
         # Check current locomotion state
         if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
             self.driving = any(wheelSpeed)
-            success = self.velocity_control(wheelSpeed)
+            if self.driveMode:
+                success = self.velocity_control(wheelSpeed)
         else:
             if self.driving:
                 # Stop before executing new steering comand
-                success = self.velocity_control([0, 0, 0, 0])
+                if self.steerMode:
+                    success = self.velocity_control([0, 0, 0, 0])
                 if success:
+                    success = False
                     self.driving = False
-                    success = self.orientation_control(wheelAngle)
+                    if self.steerMode:
+                        success = self.orientation_control(wheelAngle)
             else:
-                success = self.orientation_control(wheelAngle)
+                if self.steerMode:
+                    success = self.orientation_control(wheelAngle)
             if (success and not (wheelSpeed == [0, 0, 0, 0])):
+                success = False
                 self.driving = True
-                success = self.velocity_control(wheelSpeed)
+                if self.steerMode:
+                    success = self.velocity_control(wheelSpeed)
 
         # Publish the feedback
         self._as.publish_feedback(self._feedback)
@@ -197,7 +217,7 @@ class LocomotionSimulation(object):
         rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt and publish wheel velocity
-            self.vel_pub[idx].publish(Float64(wheelSpeed[idx]*MAX_VEL))
+            self.vel_pub[idx].publish(Float64(wheelSpeed[idx]*self.MAX_VEL))
             self._feedback.sequence.append(idx+1)
         # Check locomotion state
         upperSpeed = [0, 0, 0, 0]

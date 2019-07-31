@@ -1,9 +1,4 @@
 """
-Imports
-"""
-import math
-
-"""
 Global variables
 """
 # Set CAN protocol parameters
@@ -42,11 +37,3 @@ odometryFb			= [0x0E1]
 """
 
 MAX_VALUE        	= 2147483647                                                 	# Maximal signed value for 4 bytes
-
-# Set EPS parameters
-MAX_CUR_B			= 25															# Maximal current on battery current sensor [A]
-MAX_CUR_M			= 12															# Maximal current on motor current sensor [A]
-
-# Set motor parameters
-MAX_VEL     		= math.pi                                                     	# Maximal wheel velocity [rad/s]
-MAX_ORT  			= math.pi/2                                                     # Maximal wheel orientation [rad]
