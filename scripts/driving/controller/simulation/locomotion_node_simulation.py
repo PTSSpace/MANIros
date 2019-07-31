@@ -40,7 +40,7 @@ from maniros.msg import LocomotionFeedback
 from maniros.msg import LocomotionResult
 
 # Velocity based vector protocol
-from vector_protocol.vector_protocol import VectorTranslation
+from ..vector_protocol.vector_protocol import VectorTranslation
 
 """
 Classes
@@ -52,6 +52,9 @@ class LocomotionSimulation(object):
     _result = LocomotionResult()
 
     def __init__(self, name):
+
+        self._action_name = name
+
         # Set working parameters
         self.tollerance         = 0.01                                  # Tollerance for the angle/velocity state
         # Get ros parameters
@@ -92,7 +95,6 @@ class LocomotionSimulation(object):
         self.lcInitialised = True
 
         # Locomotion control action
-        self._action_name = name
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
         self._as.start()
 

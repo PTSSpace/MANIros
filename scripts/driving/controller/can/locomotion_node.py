@@ -40,7 +40,7 @@ from maniros.msg import LocomotionFeedback
 from maniros.msg import LocomotionResult
 
 # Velocity based vector protocol
-from vector_protocol.vector_protocol import VectorTranslation
+from ..vector_protocol.vector_protocol import VectorTranslation
 
 """
 Classes
