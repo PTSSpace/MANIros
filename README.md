@@ -5,7 +5,7 @@ Base ROS package to develop with the MANI rover. Provides a high level api for t
 
 The Rover coordinate system and indexing is displayed in the following image:
 
-<img src="LocomotionControlKOSY.png" width="200">
+<img src="LocomotionControlKOSY.png" width="600">
 
 
 ## Installation
