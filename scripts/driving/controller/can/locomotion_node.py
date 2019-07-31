@@ -114,7 +114,7 @@ class LocomotionControl(object):
         # Append message CAN bus message feedback
         self._feedback.sequence = []
 
-        rospy.loginfo("LC (in) \t x:%d \t y:%d \t rot:%d - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
+        rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
         # Convert velocity twist messages to individual wheel velocity and orientation
         [wheelSpeed, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
 
