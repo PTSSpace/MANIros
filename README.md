@@ -1,6 +1,13 @@
 # MANIros
 Base ROS package to develop with the MANI rover. Provides a high level api for the available sensors and motors.
 
+## Rover
+
+The Rover coordinate system and indexing is displayed in the following image:
+
+![LocomotionControlKOSY](LocomotionControlKOSY.png){ width=50% }
+
+
 ## Installation
 
 To get all the required dependencies on your jetson board [these](https://github.com/PTScientists/MANIansible) ansible
