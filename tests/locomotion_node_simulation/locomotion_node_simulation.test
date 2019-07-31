@@ -1,0 +1,7 @@
+<launch>
+  <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
+  <rosparam command="load" file="$(arg rover_parameters_url)" />
+
+  <node name="locomotion_control" pkg="maniros" type="locomotion_node_simulation.py" output="screen"/>
+  <test test-name="locomotion_node_simulation_test" pkg="maniros" type="locomotion_node_simulation_test.py"/>
+</launch>
