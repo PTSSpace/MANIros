@@ -27,7 +27,7 @@ from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, Transform
 import tf_conversions
 
 # Velocity based vector protocol
-from vector_protocol.vector_odometry import VectorOdometry
+from vector_odometry.vector_odometry import VectorOdometry
 
 """
 Global variables

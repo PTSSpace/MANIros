@@ -25,7 +25,7 @@ import threading
 import Queue
 
 # Import CAN protocol parameters
-from can_protocol import *
+from can.can_protocol import *
 # Import CAN interface
 from can_interface import CANInterface
 
@@ -40,7 +40,7 @@ from maniros.msg import LocomotionFeedback
 from maniros.msg import LocomotionResult
 
 # Velocity based vector protocol
-from ..vector_protocol.vector_protocol import VectorTranslation
+from vector_protocol.vector_protocol import VectorTranslation
 
 """
 Classes
