@@ -7,7 +7,6 @@ The Rover coordinate system and indexing is displayed in the following image:
 
 <img src="LocomotionControlKOSY.png" width="600">
 
-
 ## Installation
 
 To get all the required dependencies on your jetson board [these](https://github.com/PTScientists/MANIansible) ansible
@@ -18,7 +17,7 @@ version use the `develop` branch, otherwise pick `master`.
 
 Development is done on topic branches, if you work on a new feature create your own branch and start working. After your
 done create a pull request against the `develop` branch. If all tests complete successfully, and there are additional
-ones for new features, it can be reviewed and merged into master. 
+ones for new features, it can be reviewed and merged into master.
 
 ## CAN Bus
 The CAN interface is set to **can0** but may be set to **can1** if desired.
@@ -67,3 +66,9 @@ Each command further has its own indentifier number to indicate which node it is
 | odometryFb | 0x0EX | Odometry feedback of absolute encoder counts for rover distance traveled | Drive Node | OBC | 8 bytes | pulses \[-2147483647..2147483647\] (bytes 1 to 4) revolutions \[-2147483647..2147483647\] (bytes 5 to 8) |
 
 **The velocity and orientation are scaled values based on the maximal velocity and orientation, respectively.**
+
+## ROS Nodes
+
+The ROS nodes for the teleoperation branch is visualised below in rqt_graph for the Gazeebo simmulation example:
+
+<img src="MANI_Teleoperation_Simulation_rqt_graph.png" width="600">

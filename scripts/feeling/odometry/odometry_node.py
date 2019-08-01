@@ -40,7 +40,7 @@ wheelIndex              = ['front_left', 'rear_left', 'rear_right', 'front_right
 Classes
 """
 
-class OdometrySimulation(object):
+class OdometryPublisher(object):
 
 
     def __init__(self, name):
@@ -133,9 +133,10 @@ class OdometrySimulation(object):
             self.prev_drive_pulses = self.drive_pulses
             self.prev_drive_revolutions = self.drive_revolutions
 
+            current_time = rospy.Time.now()
             # Publish 6DOF transform from odometry yaw (rz rotation)
             t = TransformStamped()
-            t.header.stamp = rospy.Time.now()
+            t.header.stamp = current_time
             t.header.frame_id = "odom"
             t.child_frame_id = "base_link"
             t.transform.translation.x = self.x
@@ -148,7 +149,6 @@ class OdometrySimulation(object):
             t.transform.rotation.w = q[3]
             self.odom_bcr.sendTransform(t)
 
-            current_time = rospy.Time.now()
             # Publish ROS odometry message
             odom = Odometry()
             odom.header.stamp = current_time
@@ -167,10 +167,10 @@ Main
 """
 if __name__ == '__main__':
     # Start ROS node
-    rospy.init_node("odometry_simulation", anonymous=True)
+    rospy.init_node("odometry_publisher", anonymous=True)
 
     # Start ROS action
-    server = OdometrySimulation(rospy.get_name())
+    server = OdometryPublisher(rospy.get_name())
     rospy.spin()
 
 rospy.on_shutdown(server.shutdown)
