@@ -3,7 +3,7 @@ from __future__ import print_function
 
 
 """
-This program provides a ROS node for the can0 bus interface.
+This program provides a ROS node for accessing the can0 bus interface.
 It connects the electrical power supply node to the ROS network.
 Power commands are forwarded to the drive nodes.
 Encoder odometry messages are received from the drive nodes and published to the ROS network.

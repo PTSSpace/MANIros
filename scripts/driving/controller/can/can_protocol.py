@@ -53,4 +53,4 @@ locomotionFb 		= [0x0D1]
 odometryFb			= [0x0E1]
 """
 
-MAX_VALUE        	= 2147483647                                                 	# Maximal signed value for 4 bytes
+MAX_VALUE        	= 2147483647                                                 	# Maximal signed value for 8 bytes

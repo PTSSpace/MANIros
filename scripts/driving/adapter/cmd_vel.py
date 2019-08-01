@@ -1,4 +1,17 @@
 #!/usr/bin/python
+"""
+This program provides a ROS node for muxing autonomous rover navigation commands
+with human joy stick commands.
+The code prioritises human commands before utonomous commands and blocks for a set periode
+after wach human interaction.
+The navigation commands are passed on via a ROS action to the locomotion control node.
+
+Subscribed ROS topics:
+*   move_base/cmd_vel
+*   teleop/cmd_vel
+ROS actions:
+*   locomotion_control
+"""
 
 """
 Imports
@@ -28,14 +41,16 @@ class CmdVel:
         self.human_cmd_time = time.time()
 
     def on_autonomous_cmd(self, data):
+        # Autonomous navigation stack movement command
         time_since_human_cmd = time.time() - self.human_cmd_time
         if time_since_human_cmd >= self.block_duration:
             self.block_duration = 0 # stop blocking
             self.locomotion_control_client(data)
 
     def on_human_cmd(self, data):
+        # Human joy stick movement command
         self.human_cmd_time = time.time()
-        self.block_duration = 5
+        self.block_duration = 5                 # Set block for autonomous commands
         self.locomotion_control_client(data)
 
     def locomotion_control_client(self, data):

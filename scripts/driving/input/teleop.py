@@ -1,5 +1,23 @@
 #!/usr/bin/python
+"""
+This program provides a ROS node for interpreting the joy stick commands.
+It connects the joy topic and forwards specified commands to the locomotion control.
+The joystick input is converted to Twist messages, while the jostick buttons are used
+for switches to enable specific functions of the locomotion system and are forwarded directly to the
+locomotion node.
+If the deadman switch is deactivated no commands can be sent to the rover and only a stop message is
+sent.
 
+Subscribed ROS topics:
+*   joy
+Published ROS topics:
+*   teleop/cmd_vel - Rover twist messages
+*   teleop/lc_switch - Locomotion state switches
+"""
+
+"""
+Imports
+"""
 import rospy
 import actionlib
 import math
@@ -11,6 +29,9 @@ from maniros.msg import EpsAction
 from maniros.msg import EpsGoal
 from maniros.msg import EpsCommand
 
+"""
+Classes
+"""
 class Teleop:
     def __init__(self):
         # initilizes and saves the state of the deadman switch (button RB)
@@ -21,7 +42,7 @@ class Teleop:
 
         self.cmd_vel_pub = rospy.Publisher("teleop/cmd_vel", Twist, queue_size=1)
         self.lc_switch_pub = rospy.Publisher("teleop/lc_switch", MoveCommand, queue_size=1)
-        self.joy_sub = rospy.Subscriber("joy", Joy, self.on_joy)
+        rospy.Subscriber("joy", Joy, self.on_joy)
         self.lcTwist = [0, 0, 0]
         self.lcSwitch = [0, 0, 0, 0]
         self.epsSwitch = [0, 0]
@@ -105,6 +126,9 @@ class Teleop:
     def shutdown(self):
         self.client.cancel_goal()
 
+"""
+Main
+"""
 if __name__ == '__main__':
     rospy.init_node("teleop")
     controller = Teleop()

@@ -32,8 +32,6 @@ from can_interface import CANInterface
 # Import ROS messages
 from maniros.msg import MoveCommand                                                 # Locomotion control switches
 from maniros.msg import EncoderOdometry                                             # Encoder odometry feedback
-from maniros.msg import Vector4                                                     # Vector format for wheel messages
-from maniros.msg import Vector4Int                                                  # Vector format for wheel messages
 # Locomotion control action
 from maniros.msg import LocomotionAction
 from maniros.msg import LocomotionFeedback
@@ -218,10 +216,10 @@ class LocomotionControl(object):
     def get_encoder_odometry(self):
         # Get message values from listener
         msg = EncoderOdometry()
-        msg.drive_pulses = Vector4Int(*(self.ci.listener.pulses))
-        msg.drive_revolutions = Vector4Int(*(self.ci.listener.revolutions))
-        activity = Vector4Int(*(self.ci.listener.activity[1:5]))
-        msg.drive_velocity = Vector4([0,0,0,0])
+        msg.drive_pulses = self.ci.listener.pulses
+        msg.drive_revolutions = self.ci.listener.revolutions
+        msg.activity = self.ci.listener.activity[1:5]
+        msg.drive_velocity = [0,0,0,0]
         return msg
 
 
