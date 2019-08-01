@@ -1,14 +1,32 @@
 """
+This header provides variables for a rudamentary CAN protocol.
+All messages are bounded to 8 bytes therefore the maximal signed value
+is declared as 2147483647.
+
+Messages with lower numeric values for their ID's have higher priority on the CAN network.
+All message ID's are given in Hexadecimal. To ensure the priority of specified commands,
+each command has its own range denoted by the letter in the hex numbers.
+Each command further has its own indentifier number to indicate which node it is specified for
+or originating from. The OBC is the only communication point to the other nodes and does
+therefore not need an indentifier number.
+
+ID List:
+| Position/function on rover | Indentifier number | ID's  |
+|----------------------------|--------------------|-------|
+| electrical power supply    | 0                  | 0xXX0 |
+| front_left wheel           | 1                  | 0xXX1 |
+| rear_left wheel            | 2                  | 0xXX2 |
+| rear_right wheel           | 3                  | 0xXX3 |
+| front_right wheel          | 4                  | 0xXX4 |
+"""
+
+"""
 Global variables
 """
 # Set CAN protocol parameters
 BITRATE           = 500000                                                          # CAN bus bit rate
 
 # Message header ID's:
-"""
-Messages with lower numeric values for their ID's
-have higher priority on the CAN network
-"""
 
 # Electrical Power Supply (EPS)
 powerCmd            = [0x000]                                                       # Motor power on/off command
@@ -19,7 +37,6 @@ currentFd          	= [0x0E0]                                                   
 currentSensorIndex	= ['battery','front_left', 'rear_left', 'rear_right', 'front_right']
 
 # Locomotion Control (LC)
-
 wheelIndex          = ['front_left', 'rear_left', 'rear_right', 'front_right']      # Wheel location on rover
 switchCmd      		= [0x0B1, 0x0B2, 0x0A3, 0x0B4]                                  # Motor/PID start/stop command, initialization and odometry publisher command
 orientationCmd      = [0x0C1, 0x0C2, 0x0B3, 0x0C4]                                  # Set orientation locomotion command

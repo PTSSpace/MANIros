@@ -1,3 +1,26 @@
+"""
+This program provides a CAN bus interface.
+It connects to the can0 interface and provides options for sending and receiving messages
+within the defined CAN protocol.
+The interface is comprised of the main interface class which is used for message passing
+and the listener class that is an interrupt driven class to record messages from the bus.
+All values recorded from the bus are either normed to fit an int32 [0 ... 2147483647]
+and must therefore be scaled in the monitoring node, or if they are counters
+they are bounded to 8 bytes in size.
+Received messages are passed into interrupt Queues and Events that can be read from
+the monitoring node.
+
+
+CANInterface:
+    * CAN bus interface and message passing
+CANListener:
+    *   CAN bus interrupt handler
+    Events and Event Queues:
+        *   epsPowerQueue   - EPS power switch toggled
+        *   epsMsgQueue     - EPS critical current and over-current warning
+        *   lcMsgQueue      - Orientation reached feedback
+        *   lcSteer         - Steering completed feedback
+"""
 
 """
 Imports
@@ -11,7 +34,7 @@ import struct
 """
 Classes
 """
-class CAN_Listener(can.Listener):
+class CANListener(can.Listener):
     """CAN Listener class to catch encoder odometry feedback"""
     def __init__(self):
         # Bus feedback variables
@@ -56,9 +79,9 @@ class CAN_Listener(can.Listener):
             elif ID == currentFb:
                 idx = struct.unpack('i', rxMsg.data[0:4])[0]
                 if idx ==1:
-                    self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0], 2)
+                    self.current[idx] = CANListener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0], 2)
                 elif idx < len(self.current):
-                    self.current[idx] = CAN_Listener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0],3)
+                    self.current[idx] = CANListener.unwrap_message_format(struct.unpack('i', rxMsg.data[4:8])[0],3)
                 else:
                     print ("CI \t Message Error")
                 self.activity[0] = 1
@@ -107,7 +130,7 @@ class CANInterface():
         cls.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=BITRATE)
 
         # Create listener
-        cls.listener = CAN_Listener()
+        cls.listener = CANListener()
         # Add notifyier to call listener periodically
         with cls.lock:
             cls.notifier = can.Notifier(cls.bus, [cls.listener])

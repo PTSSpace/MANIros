@@ -82,6 +82,21 @@ class LocSimTest(unittest.TestCase):
         rospy.loginfo("Goal completed" + str(result.sequence))
         self.success = True
 
+    def normalizeArray(self, array, threshhold = 1):
+        """
+        Normalizes any array: e.g.
+        threshhold = 1: [1.0, 2.0, -10.0] becomes [0.1, 0.2, -1]
+        threshhold = 2: [1.0, 2.0, -10.0] becomes [0.2, 0.4, -2]
+        threshhold = 20: [1.0, 2.0, -10.0] stays [1, 2, -10]
+        :param array: An array with signed values
+        :param threshhold: Noramlize values to a threshhold (default: 1)
+        """
+        maxvalue = abs(max(array, key=abs))
+        if maxvalue > threshhold:
+            for idx, value in enumerate(array):
+                array[idx] = (value / maxvalue) * threshhold      # normalise and apply tranlational speed scaling factor
+        return array
+
     def test_1_locomotion_publishers(self):
         called = False
         # Create move and joint commands
@@ -157,52 +172,7 @@ class LocSimTest(unittest.TestCase):
             rate.sleep()
         self.assertTrue(self.success, 'Locomotion action was not completed')
 
-    def test_3_stop(self):
-        # Motion commands
-        x = 0
-        y = 0
-        # Create move and joint commands
-        mv_msg = MoveControl()
-        mv_msg.header.stamp = rospy.Time.now()
-        mv_msg.header.frame_id = "/cmd_vel";
-        mv_msg.x = x
-        mv_msg.y = y
-        mv_msg.rz = 0
-        mv_msg.header.stamp = rospy.Time.now()
-        mv_msg.header.frame_id = "/manisim";
-
-        jn_msg = JointState()
-        jn_msg.name = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
-        jn_msg.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        jn_msg.velocity = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        jn_msg.effort = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-        # Send goal to the action server
-        self.success = False
-        goal = LocomotionGoal(command = mv_msg)
-        self.client.send_goal(goal, done_cb=self._goal_done)
-
-        timeout_t = time.time() + 10.0  # 10 s
-        rate = rospy.Rate(10)           # 10 Hz
-
-        # Check orientation publisher
-        while not rospy.is_shutdown() and time.time() < timeout_t:
-            self.joint_pub.publish(jn_msg)
-            if all(value == 0 for value in self.wheelAngle):
-                break
-            rate.sleep()
-        # Check velocity publisher
-        while not rospy.is_shutdown() and time.time() < timeout_t:
-            self.joint_pub.publish(jn_msg)
-            if all(value == 0 for value in self.wheelSpeed):
-                break
-            rate.sleep()
-        # Check action callback
-        while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
-            rate.sleep()
-        self.assertTrue(self.success, 'Locomotion stop action failed')
-
-    def test_4_motion(self):				# Note: test success is dependant on driving variable in tested class (test order is important)
+    def test_3_motion(self):				# Note: test success is dependant on driving variable in tested class (test order is important)
         # Motion commands
         x = 0.5
         y = 0.7
@@ -264,6 +234,120 @@ class LocSimTest(unittest.TestCase):
         while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
             rate.sleep()
         self.assertTrue(self.success, 'Locomotion motion action failed')
+
+    def test_4_stop(self):
+        # Motion commands
+        x = 0
+        y = 0
+        # Create move and joint commands
+        mv_msg = MoveControl()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/cmd_vel";
+        mv_msg.x = x
+        mv_msg.y = y
+        mv_msg.rz = 0
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/manisim";
+
+        jn_msg = JointState()
+        jn_msg.name = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
+        jn_msg.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        jn_msg.velocity = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        jn_msg.effort = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        # Send goal to the action server
+        self.success = False
+        goal = LocomotionGoal(command = mv_msg)
+        self.client.send_goal(goal, done_cb=self._goal_done)
+
+        timeout_t = time.time() + 10.0  # 10 s
+        rate = rospy.Rate(10)           # 10 Hz
+
+        # Check orientation publisher
+        while not rospy.is_shutdown() and time.time() < timeout_t:
+            self.joint_pub.publish(jn_msg)
+            if all(value == 0 for value in self.wheelAngle):
+                break
+            rate.sleep()
+        # Check velocity publisher
+        while not rospy.is_shutdown() and time.time() < timeout_t:
+            self.joint_pub.publish(jn_msg)
+            if all(value == 0 for value in self.wheelSpeed):
+                break
+            rate.sleep()
+        # Check action callback
+        while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
+            rate.sleep()
+        self.assertTrue(self.success, 'Locomotion stop action failed')
+
+    def test_5_rotation(self):                # Note: test success is dependant on driving variable in tested class (test order is important)
+        # Motion commands
+        x = 0
+        y = 0
+        rz = math.pi/2
+        # Create move and joint commands
+        mv_msg = MoveControl()
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/cmd_vel";
+        mv_msg.x = x
+        mv_msg.y = y
+        mv_msg.rz = rz
+        mv_msg.header.stamp = rospy.Time.now()
+        mv_msg.header.frame_id = "/manisim";
+
+        # Calculate angle and velocity needed
+        alpha = math.atan2(self.length,self.width)
+        v = rz/2 * math.hypot(self.width,self.length)
+        velocity = normalizeArray([-v, -v, v, v])
+
+        jn_msg = JointState()
+        jn_msg.name = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
+        jn_msg.position = [0, 0, 0, 0, 0, 0, -alpha, alpha, -alpha, alpha]
+        jn_msg.velocity = [0, 0] +  velocity + [0, 0, 0, 0]
+        jn_msg.effort = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        # Bound for checking states
+        upperAngle = [0, 0, 0, 0]
+        lowerAngle = [0, 0, 0, 0]
+        upperSpeed = [0, 0, 0, 0]
+        lowerSpeed = [0, 0, 0, 0]
+        for idx in range(0, len(self.wheelAngle)):
+            upperAngle[idx] = jn_msg.position[idx+6] + 10*self.tollerance
+            lowerAngle[idx] = jn_msg.position[idx+6] - 10*self.tollerance
+            upperSpeed[idx] = jn_msg.velocity[idx+2] + self.tollerance
+            lowerSpeed[idx] = jn_msg.velocity[idx+2] - self.tollerance
+
+        # Send goal to the action server
+        self.success = False
+        goal = LocomotionGoal(command = mv_msg)
+        self.client.send_goal(goal, done_cb=self._goal_done)
+        self.joint_pub.publish(jn_msg)
+
+        timeout_t = time.time() + 10.0  # 10 s
+        rate = rospy.Rate(10)           # 10 Hz
+
+        # Check orientation publisher
+        exit = False
+        while not rospy.is_shutdown() and time.time() < timeout_t and not exit:
+            exit = True
+            self.joint_pub.publish(jn_msg)
+            for idx in range (0, len(self.wheelAngle)):
+                if ((self.wheelAngle[idx] > upperAngle[idx]) or (self.wheelAngle[idx] <  lowerAngle[idx])):
+                    exit = False
+            rate.sleep()
+        # Check celocity publisher
+        exit = False
+        while not rospy.is_shutdown() and time.time() < timeout_t and not exit:
+            exit = True
+            self.joint_pub.publish(jn_msg)
+            for idx in range (0, len(self.wheelSpeed)):
+                if ((self.wheelSpeed[idx] > upperSpeed[idx]) or (self.wheelSpeed[idx] <  lowerSpeed[idx])):
+                    exit = False
+            rate.sleep()
+        # Check action callback
+        while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
+            rate.sleep()
+        self.assertTrue(self.success, 'Locomotion rotation action failed')
 
 if __name__ == '__main__':
     rostest.rosrun('maniros', 'test_teleop', LocSimTest)

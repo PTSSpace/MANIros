@@ -2,7 +2,7 @@
 from __future__ import print_function
 
 """
-This program provides a ROS node for the can0 bus interface.
+This program provides a ROS node for accessing the can0 bus interface.
 It connects the locomotion nodes to the ROS network.
 Velocitity and general motor commands are forwarded to the drive nodes.
 Encoder odometry messages are received from the drive nodes and published to the ROS network.
@@ -177,7 +177,7 @@ class LocomotionControl(object):
         rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel orientation
-            orientation = CAN_Listener.wrap_message_format(wheelAngle[idx]/MAX_ORT)
+            orientation = CANListener.wrap_message_format(wheelAngle[idx]/MAX_ORT)
             # Send CAN locomotion command
             rospy.loginfo("LC (out) \t %s wheel \t Orientation: %d" % (wheel, orientation))
             sent = self.ci.send_can_message(orientationCmd[idx], [orientation])
@@ -199,7 +199,7 @@ class LocomotionControl(object):
         rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel velocity
-            velocity = CAN_Listener.wrap_message_format(wheelSpeed[idx])
+            velocity = CANListener.wrap_message_format(wheelSpeed[idx])
             # Send CAN locomotion command
             rospy.loginfo("LC (out) \t %s wheel \t Velocity: %d" % (wheel, velocity))
             sent = self.ci.send_can_message(velocityCmd[idx], [velocity])
