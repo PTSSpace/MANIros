@@ -24,10 +24,10 @@ from sensor_msgs.msg import JointState
 Global variables
 """
 
-PULSES_PER_REV          = rospi.get_param("/drive_enc_ppr")
+PULSES_PER_REV          = rospy.get_param("/drive_enc_ppr")
 
-MAX_VEL                 = rospi.get_param("/max_vel")                           # Maximal wheel velocity [rad/s]
-MaxOrientation          = rospi.get_param("/max_ort")                          						# Maximal wheel orientation [rad]
+MAX_VEL                 = rospy.get_param("/max_vel")                           # Maximal wheel velocity [rad/s]
+MaxOrientation          = rospy.get_param("/max_ort")                          						# Maximal wheel orientation [rad]
 MaxVelEnc 				= MAX_VEL * PULSES_PER_REV/(2*MaxOrientation)   		# Maximal wheel velocity [encoder pulses per second]
 MaxOrEnc				= PULSES_PER_REV/2                            			# Maximal wheel orientation [encoder pulses]
 
@@ -49,7 +49,7 @@ class EncoderSimulation():
         # Odometry publisher base_link
 		self.enc_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
 
-		self.timer = rospy.Timer(rospy.Duration(1/PUB_RATE), self.encoder_simulation_publisher)
+		self.timer = rospy.Timer(rospy.Duration(1), self.encoder_simulation_publisher)
 
 	def get_joint_states(self, data):
 		# Get joint state values from simulation
@@ -57,22 +57,22 @@ class EncoderSimulation():
 		self.jointSpeed = data.velocity[2:10]
 
 
-	def encoder_simulation_publisher(self):
+	def encoder_simulation_publisher(self, event):
 		msg = EncoderOdometry()
 		for i in range(0,4):
-			msg.drive_pulses[i] = wheelAngle_to_pulse(self, jointAngle[i])
+			msg.drive_pulses[i] = self.wheelAngle_to_pulse(self.jointAngle[i])
 
 		for i in range(0,4):
-			msg.steer_pulses[i] = joint_angle_to_joint_pulses(self, jointAngle[i+4])
+			msg.steer_pulses[i] = self.joint_angle_to_joint_pulses(self.jointAngle[i+4])
 
 		for i in range(0,4):
-			msg.drive_revolutions[i] = revolutions_counter(self, jointAngle[i], jointSpeed[i])
+			msg.drive_revolutions[i] = self.revolutions_counter(self.jointAngle[i])
 
 		for i in range(0,4):
-			msg.drive_velocity[i] = rad_to_pulse(self, jointSpeed[i])
+			msg.drive_velocity[i] = self.rad_to_pulse(self.jointSpeed[i])
 
 		for i in range(0,4):
-			msg.steer_velocity[i] = rad_to_pulse(self, jointSpeed[i+4])
+			msg.steer_velocity[i] = self.rad_to_pulse(self.jointSpeed[i+4])
 
 		self.enc_pub.publish(msg)
 
@@ -86,11 +86,11 @@ class EncoderSimulation():
 		return (PULSES_PER_REV/(2*math.pi))*angle+PULSES_PER_REV/4
 
 	def revolutions_counter(self, wheelAngle):									# +1/-1 after a full rotation (8384 pulses)
-		return Rotations=int(wheelAngle/(2*math.pi))
+		return int(wheelAngle/(2*math.pi))
 
 	def wheelAngle_to_pulse(self, wheelAngle):
-		rad = wheelAngle-(2*math.pi*revolutions_counter(self, wheelAngle))
-		return rad_to_pulse(self, rad)
+		rad = wheelAngle-(2*math.pi*self.revolutions_counter(wheelAngle))
+		return self.rad_to_pulse(rad)
     	
 
 
