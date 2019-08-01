@@ -21,6 +21,8 @@ class LocSimTest(unittest.TestCase):
         super(LocSimTest, self).__init__(*args)
         rospy.init_node("test_input", anonymous=True)
         # Get ROS parameters
+        self.rover_length       = rospy.get_param("/rover_length")      # Rover length [m]
+        self.rover_width        = rospy.get_param("/rover_width")       # Rover width [m]
         self.MAX_VEL            = rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
         self.MAX_ORT            = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
         # Set working parameters
@@ -296,10 +298,10 @@ class LocSimTest(unittest.TestCase):
         mv_msg.header.frame_id = "/manisim";
 
         # Calculate angle and velocity needed
-        alpha = math.atan2(self.length,self.width)
-        v = rz/2 * math.hypot(self.width,self.length)
-        velocity = normalizeArray([-v, -v, v, v])
-
+        alpha = math.atan2(self.rover_length,self.rover_width)
+        v = rz/2 * math.hypot(self.rover_width,self.rover_length)
+        velocity = self.normalizeArray([-v, -v, v, v])
+        velocity = [value * self.MAX_VEL for value in velocity]
         jn_msg = JointState()
         jn_msg.name = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
         jn_msg.position = [0, 0, 0, 0, 0, 0, -alpha, alpha, -alpha, alpha]
