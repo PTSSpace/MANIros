@@ -23,10 +23,11 @@ from sensor_msgs.msg import JointState
 """
 Global variables
 """
-PULSES_PER_REV          = 8384
 
-MAX_VEL                 = math.pi                                            	# Maximal wheel velocity [rad/s]
-MaxOrientation          = math.pi                          						# Maximal wheel orientation [rad]
+PULSES_PER_REV          = rospi.get_param("/drive_enc_ppr")
+
+MAX_VEL                 = rospi.get_param("/max_vel")                           # Maximal wheel velocity [rad/s]
+MaxOrientation          = rospi.get_param("/max_ort")                          						# Maximal wheel orientation [rad]
 MaxVelEnc 				= MAX_VEL * PULSES_PER_REV/(2*MaxOrientation)   		# Maximal wheel velocity [encoder pulses per second]
 MaxOrEnc				= PULSES_PER_REV/2                            			# Maximal wheel orientation [encoder pulses]
 
@@ -41,36 +42,56 @@ Classes
 
 class EncoderSimulation():
 	def __init__(self):
-		self.wheelSpeed         = [0, 0, 0, 0]		#rad/s
-		self.wheelAngle         = [0, 0, 0, 0]		#rad
+		self.jointSpeed         = [0, 0, 0, 0, 0, 0, 0, 0]		#rad/s
+		self.jointAngle         = [0, 0, 0, 0, 0, 0, 0, 0]		#rad
 		# Joint velocity and orientation subscriber
-		self.joint_sub = rospy.Subscriber("/manisim/joint_states", JointState, self.get_joint_states, queue_size=10)
+		rospy.Subscriber("/mani/joint_states", JointState, self.get_joint_states, queue_size=10)
         # Odometry publisher base_link
 		self.enc_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
 
+		self.timer = rospy.Timer(rospy.Duration(1/PUB_RATE), self.encoder_simulation_publisher)
+
 	def get_joint_states(self, data):
 		# Get joint state values from simulation
-		self.wheelAngle = data.position[6:10]
-		self.wheelSpeed = data.velocity[2:6]
+		self.jointAngle = data.position[2:10]
+		self.jointSpeed = data.velocity[2:10]
+
+
+	def encoder_simulation_publisher(self):
+		msg = EncoderOdometry()
+		for i in range(0,4):
+			msg.drive_pulses[i] = wheelAngle_to_pulse(self, jointAngle[i])
+
+		for i in range(0,4):
+			msg.steer_pulses[i] = joint_angle_to_joint_pulses(self, jointAngle[i+4])
+
+		for i in range(0,4):
+			msg.drive_revolutions[i] = revolutions_counter(self, jointAngle[i], jointSpeed[i])
+
+		for i in range(0,4):
+			msg.drive_velocity[i] = rad_to_pulse(self, jointSpeed[i])
+
+		for i in range(0,4):
+			msg.steer_velocity[i] = rad_to_pulse(self, jointSpeed[i+4])
+
+		self.enc_pub.publish(msg)
 
 	def shutdown(self):
 		rospy.loginfo("Shutting down odometry node")
 
-	def rad_to_pulse(vel):
-		return vel/(2*math.pi)*PULSES_PER_REV
+	def rad_to_pulse(self, angle):												# position from driving wheel and velocity
+		return angle/(2*math.pi)*PULSES_PER_REV
 
-	def revolutions_counter(wheelAngle,wheelSpeed):
-		if(wheelAngle-Angle_Old>1.5*math.pi and wheelSpeed>0):
-			Rotations=Rotations+1
-			Angle_Old=wheelAngle
+	def joint_angle_to_joint_pulses(self, angle):									#steeringangle ONLY
+		return (PULSES_PER_REV/(2*math.pi))*angle+PULSES_PER_REV/4
 
-		if(Angle_Old-wheelAngle>1.5*math.pi and wheelSpeed<0):
-			Rotations=Rotations-1
-			Angle_Old=wheelAngle
+	def revolutions_counter(self, wheelAngle):									# +1/-1 after a full rotation (8384 pulses)
+		return Rotations=int(wheelAngle/(2*math.pi))
+
+	def wheelAngle_to_pulse(self, wheelAngle):
+		rad = wheelAngle-(2*math.pi*revolutions_counter(self, wheelAngle))
+		return rad_to_pulse(self, rad)
     	
-		return Rotations
-
-
 
 
 """
@@ -84,7 +105,4 @@ if __name__ == '__main__':
     encoder = EncoderSimulation()
     rospy.spin()
 
-rospy.on_shutdown(encoder.shutdown)
-
-#current_time = rospy.Time.now()
-#last_time = rospy.Time.now()
+rospy.on_shutdown(server.shutdown)
