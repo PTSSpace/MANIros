@@ -45,7 +45,7 @@ class EncoderSimulation():
 		self.jointSpeed         = [0, 0, 0, 0, 0, 0, 0, 0]		#rad/s
 		self.jointAngle         = [0, 0, 0, 0, 0, 0, 0, 0]		#rad
 		# Joint velocity and orientation subscriber
-		rospy.Subscriber("/mani/joint_states", JointState, self.get_joint_states, queue_size=10)
+		rospy.Subscriber("/manisim/joint_states", JointState, self.get_joint_states, queue_size=10)
         # Odometry publisher base_link
 		self.enc_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
 
