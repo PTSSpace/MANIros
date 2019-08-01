@@ -1,9 +1,7 @@
 <launch>
-	<!-- Load Rover Parameters -->
-	<arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml"/>
-	<rosparam command="load" file="$(arg rover_parameters_url)" />
+  <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
+  <rosparam command="load" file="$(arg rover_parameters_url)" />
 
-	< node name="encoder_simulation" pkg="maniros" type="encoder_simulation.py" output="screen"/ >
-	< test test-name ="encoder_simulation_test" pkg="maniros" type="encoder_simulation_test.py"/ >
-
+  <node name="encoder_simulation" pkg="maniros" type="encoder_simulation.py" output="screen"/>
+  <test test-name="encoder_simulation_test" pkg="maniros" type="encoder_simulation_test.py"/>
 </launch>

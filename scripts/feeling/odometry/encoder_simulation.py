@@ -53,9 +53,8 @@ class EncoderSimulation():
 
 	def get_joint_states(self, data):
 		# Get joint state values from simulation
-		self.jointAngle = data.position[2:10]
-		self.jointSpeed = data.velocity[2:10]
-
+                self.jointAngle = data.position[2:10]
+                self.jointSpeed = data.velocity[2:10]
 
 	def encoder_simulation_publisher(self, event):
 		msg = EncoderOdometry()
@@ -80,10 +79,10 @@ class EncoderSimulation():
 		rospy.loginfo("Shutting down odometry node")
 
 	def rad_to_pulse(self, angle):												# position from driving wheel and velocity
-		return angle/(2*math.pi)*PULSES_PER_REV
+		return int(angle/(2*math.pi)*PULSES_PER_REV)
 
 	def joint_angle_to_joint_pulses(self, angle):									#steeringangle ONLY
-		return (PULSES_PER_REV/(2*math.pi))*angle+PULSES_PER_REV/4
+		return int((PULSES_PER_REV/(2*math.pi))*angle+PULSES_PER_REV/4)
 
 	def revolutions_counter(self, wheelAngle):									# +1/-1 after a full rotation (8384 pulses)
 		return int(wheelAngle/(2*math.pi))
@@ -105,4 +104,4 @@ if __name__ == '__main__':
     encoder = EncoderSimulation()
     rospy.spin()
 
-rospy.on_shutdown(server.shutdown)
+rospy.on_shutdown(encoder.shutdown)
