@@ -40,7 +40,7 @@ class OdometrySimulationPublisher(object):
 
     def __init__(self, name):
         # Joint velocity and orientation subscriber
-        self.enc_sub = rospy.Subscriber("gazebo/model_states", EncoderOdometry, self.odometry_publisher, queue_size=10)
+        self.enc_sub = rospy.Subscriber("gazebo/model_states", ModelState, self.odometry_publisher, queue_size=10)
         # Transform broardcaster odom -> base_link
         self.odom_bcr = tf2_ros.TransformBroadcaster()
         # Odometry publisher base_link
@@ -49,12 +49,6 @@ class OdometrySimulationPublisher(object):
         # Get ros parameters
         self.rover_length       = rospy.get_param("/rover_length")      # Rover length [m]
         self.rover_width        = rospy.get_param("/rover_width")       # Rover width [m]
-        self.DRIVE_ENC_PPR      = rospy.get_param("/drive_enc_ppr")     # Drive encoder pulses per revolution
-        self.STEER_ENC_PPR      = rospy.get_param("/steer_enc_ppr")     # Steer encoder pulses per revolution
-        self.MAX_VEL            = rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
-        self.MAX_ORT            = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
-        self.wheel_diameter     = rospy.get_param("/wheel_diameter")    # Rover wheel diameter [m]
-
 
     def get_encoder_values(self, data):
         # Get encoder values from encoder_odometry topic
@@ -73,13 +67,13 @@ class OdometrySimulationPublisher(object):
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "odom"
         t.child_frame_id = data.reference_frame
-        t.transform.translation.x = data.pose.pose.position.x
-        t.transform.translation.y = data.pose.pose.position.y
-        t.transform.translation.z = data.pose.pose.position.z
-        t.transform.rotation.x = data.pose.pose.quaternion.x
-        t.transform.rotation.y = data.pose.pose.quaternion.y
-        t.transform.rotation.z = data.pose.pose.quaternion.z
-        t.transform.rotation.w = data.pose.pose.quaternion.w
+        t.transform.translation.x = data.pose.position.x
+        t.transform.translation.y = data.pose.position.y
+        t.transform.translation.z = data.pose.position.z
+        t.transform.rotation.x = data.pose.orientation.x
+        t.transform.rotation.y = data.pose.orientation.y
+        t.transform.rotation.z = data.pose.orientation.z
+        t.transform.rotation.w = data.pose.orientation.w
         # Publish ROS transform
         self.odom_bcr.sendTransform(t)
 

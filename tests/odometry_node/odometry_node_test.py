@@ -27,6 +27,7 @@ class OdmTest(unittest.TestCase):
         self.success = False
 
     def test_transformation_broadcaster(self):
+        self.success = False
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
         while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
@@ -46,6 +47,7 @@ class OdmTest(unittest.TestCase):
         self.success = True
 
     def test_odometry_publisher(self):
+        self.success = False
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
         while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
@@ -53,6 +55,7 @@ class OdmTest(unittest.TestCase):
         self.assertTrue(self.success, 'Odometry message was not sent')
 
     def test_translation_odometry(self):
+        self.success = False
         # Create mock rover translation message
         enc_msg = EncoderOdometry()
         enc_msg = EncoderOdometry()
@@ -77,6 +80,7 @@ class OdmTest(unittest.TestCase):
         self.assertTrue(self.success, 'False odometry interpretation')
 
     def test_drive_odometry(self):
+        self.success = False
         # Create mock rover drive message
         enc_msg = EncoderOdometry()
         enc_msg = EncoderOdometry()
@@ -101,6 +105,7 @@ class OdmTest(unittest.TestCase):
         self.assertTrue(self.success, 'False odometry interpretation')
 
     def test_roation_odometry(self):
+        self.success = False
         # Create mock rover drive message
         enc_msg = EncoderOdometry()
         enc_msg = EncoderOdometry()

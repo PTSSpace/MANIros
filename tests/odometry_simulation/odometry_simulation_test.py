@@ -25,6 +25,7 @@ class OdmTest(unittest.TestCase):
         rospy.Subscriber("gazebo/odom", Odometry, self.callback)
         self.tfBuffer = tf2_ros.Buffer()
         listener = tf2_ros.TransformListener(self.tfBuffer)
+        self.success = False
 
 
     def test_transformation_broadcaster(self):
@@ -32,13 +33,13 @@ class OdmTest(unittest.TestCase):
         # Create model state message
         state_msg = ModelState()
         state_msg.reference_frame = "gazebo/mani/gound_plane"
-        state_msg.pose.pose.position.x = 0
-        state_msg.pose.pose.position.y = 0
-        state_msg.pose.pose.position.z = 0
-        state_msg.pose.pose.quaternion.x = 0
-        state_msg.pose.pose.quaternion.y = 0
-        state_msg.pose.pose.quaternion.z = 0
-        state_msg.pose.pose.quaternion.w = 0
+        state_msg.pose.position.x = 0
+        state_msg.pose.position.y = 0
+        state_msg.pose.position.z = 0
+        state_msg.pose.orientation.x = 0
+        state_msg.pose.orientation.y = 0
+        state_msg.pose.orientation.z = 0
+        state_msg.pose.orientation.w = 1
 
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
@@ -57,11 +58,17 @@ class OdmTest(unittest.TestCase):
         self.x = data.pose.pose.position.x
         self.y = data.pose.pose.position.y
         self.z = data.pose.pose.position.z
-        self.qx = data.pose.pose.quaternion.x
-        self.qy = data.pose.pose.quaternion.y
-        self.qz = data.pose.pose.quaternion.z
-        self.qw = data.pose.pose.quaternion.w
-        rospy.loginfo("JointState message received: reference_frame_id: %s" % (data.reference_frame))
+        self.qx = data.pose.pose.orientation.x
+        self.qy = data.pose.pose.orientation.y
+        self.qz = data.pose.pose.orientation.z
+        self.qw = data.pose.pose.orientation.w
+        self.vx = data.twist.twist.linear.x
+        self.vy = data.twist.twist.linear.y
+        self.vz = data.twist.twist.linear.z
+        self.rx = data.twist.twist.angular.x
+        self.ry = data.twist.twist.angular.y
+        self.rz = data.twist.twist.angular.z
+        rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s" % (data.header.frame_id, data.child_frame_id))
         self.success = True
 
     def test_odometry_publisher(self):
@@ -69,13 +76,13 @@ class OdmTest(unittest.TestCase):
         # Create model state message
         state_msg = ModelState()
         state_msg.reference_frame = "gazebo/mani/gound_plane"
-        state_msg.pose.pose.position.x = 0
-        state_msg.pose.pose.position.y = 0
-        state_msg.pose.pose.position.z = 0
-        state_msg.pose.pose.quaternion.x = 0
-        state_msg.pose.pose.quaternion.y = 0
-        state_msg.pose.pose.quaternion.z = 0
-        state_msg.pose.pose.quaternion.w = 0
+        state_msg.pose.position.x = 0
+        state_msg.pose.position.y = 0
+        state_msg.pose.position.z = 0
+        state_msg.pose.orientation.x = 0
+        state_msg.pose.orientation.y = 0
+        state_msg.pose.orientation.z = 0
+        state_msg.pose.orientation.w = 1
 
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz

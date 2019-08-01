@@ -1,0 +1,8 @@
+<launch>
+  <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
+  <rosparam command="load" file="$(arg rover_parameters_url)" />
+
+  <node name="odometry_simulation" pkg="maniros" type="odometry_simulation.py" output="screen"/>
+  <test test-name="odometry_simulation_test" pkg="maniros" type="odometry_simulation_test.py"/>
+</launch>
+
