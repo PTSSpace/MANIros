@@ -4,6 +4,11 @@
     <arg name="rover_parameters_url" default="$(find maniros)/config/mani.yaml" />
     
     <rosparam command="load" file="$(arg rover_parameters_url)" />
+
+    <node name="odometry_node" pkg="maniros" type="odometry_node.py" output="screen"/>
+
+    <node name="encoder_simulation" pkg="maniros" type="encoder_simulation.py" output="screen"/>
+
     <node name="locomotion_control" pkg="maniros" type="locomotion_node_simulation.py" output="screen"/>
 
     <node name="joy_node" pkg="joy" type="joy_node" output="screen">
@@ -14,6 +19,7 @@
     <node name="teleop" pkg="maniros" type="teleop.py" output="screen">
         <param name="translation_scale" type="int" value="50" />
     </node>
+
     <node name="cmd_vel" pkg="maniros" type="cmd_vel.py" output="screen"/>
 
 
