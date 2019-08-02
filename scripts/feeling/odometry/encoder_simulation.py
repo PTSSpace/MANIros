@@ -35,8 +35,6 @@ class EncoderSimulation():
 		# Get ROS parameters
 		self.DRIVE_ENC_PPR   	= rospy.get_param("/drive_enc_ppr")				# Drive encoder pulses per revolution
 		self.STEER_ENC_PPR   	= rospy.get_param("/steer_enc_ppr")				# Steer encoder pulses per revolution
-		self.MAX_VEL            = rospy.get_param("/max_vel")                   # Maximal wheel velocity [rad/s]
-		self.MaxOrientation     = rospy.get_param("/max_ort")            		# Maximal wheel orientation [rad]
 		# Define working variables
 		self.jointVelocity         = [0, 0, 0, 0, 0, 0, 0, 0]					# [rad/s]
 		self.jointPosition         = [0, 0, 0, 0, 0, 0, 0, 0]					# [rad]
@@ -49,8 +47,8 @@ class EncoderSimulation():
 
 	def get_joint_states(self, data):
 		# Get joint state values from simulation
-        self.jointPosition = data.position[2:10]
-        self.jointVelocity = data.velocity[2:10]
+                self.jointPosition = data.position[2:10]
+                self.jointVelocity = data.velocity[2:10]
 
 	def encoder_simulation_publisher(self, event):
 		msg = EncoderOdometry()
@@ -63,25 +61,25 @@ class EncoderSimulation():
 
 	def drive_encoder_position(self, drivePosition):
 		# Convert position: rad -> (pulses, rotations)
-		rotations 	= int(drivePosition /(2*math.pi))
-		angle 		= drivePosition - (2*math.pi * rotations)
-		pulses 		= int(angle/(2*math.pi)*self.DRIVE_ENC_PPR)
+		rotations 	= int(drivePosition /(2.0*math.pi))
+		angle 		= drivePosition - (2.0*math.pi * rotations)
+		pulses 		= int(angle/(2.0*math.pi)*self.DRIVE_ENC_PPR)
 		return [pulses, rotations]
 
 	def drive_encoder_velocity(self, driveVelocity):
 		# Convert velocity: rad/s -> pulses/s
-		ppr 		= int(driveVelocity/(2*math.pi)*self.DRIVE_ENC_PPR)
+		ppr 		= int(driveVelocity/(2.0*math.pi)*self.DRIVE_ENC_PPR)
 		return ppr
 
 	def steer_encoder_position(self, steerPosition):
 		# Convert position: rad -> pulses
 		# Shift by a quater rotation that encoder pulses are only positive
-		pulses 		= int((drivePosition/(math.pi/2)+1.0)*(self.STEER_ENC_PPR/4.0))
+		pulses 		= int((steerPosition/(math.pi/2.0)+1.0)*(self.STEER_ENC_PPR/4.0))
 		return pulses
 
 	def steer_encoder_velocity(self, steerVelocity):
 		# Convert velocity: rad/s -> pulses/s
-		ppr 		= int(steerVelocity/(2*math.pi)*self.STEER_ENC_PPR)
+		ppr 		= int(steerVelocity/(2.0*math.pi)*self.STEER_ENC_PPR)
 		return ppr
 
 	def shutdown(self):

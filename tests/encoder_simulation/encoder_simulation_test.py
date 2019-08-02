@@ -6,6 +6,7 @@ Imports
 import unittest
 import rospy, rostest
 import time
+import math
 
 from maniros.msg import EncoderOdometry
 from sensor_msgs.msg import JointState
@@ -18,6 +19,9 @@ class EncoderSimTest(unittest.TestCase):
         def __init__(self, *args):
                 super(EncoderSimTest, self).__init__(*args)
                 rospy.init_node("test_input", anonymous=True)
+		# Get ROS parameters
+		self.DRIVE_ENC_PPR   	= rospy.get_param("/drive_enc_ppr")				# Drive encoder pulses per revolution
+		self.STEER_ENC_PPR   	= rospy.get_param("/steer_enc_ppr")				# Steer encoder pulses per revolution
                 rospy.Subscriber("/encoder_odometry", EncoderOdometry, self.callback)
                 self.enc_pub = rospy.Publisher("manisim/joint_states", JointState, queue_size=10)
 
@@ -50,7 +54,7 @@ class EncoderSimTest(unittest.TestCase):
                 self.success    = False
                 jn_msg          = JointState()
                 jn_msg.name     = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
-                jn_msg.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                jn_msg.position = [0, 0, 0, 0, 0, 0, alpha, alpha, alpha, alpha]
                 jn_msg.velocity = [0, 0, v, v, v, v, 0, 0, 0, 0]
                 jn_msg.effort   = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -68,7 +72,7 @@ class EncoderSimTest(unittest.TestCase):
                 self.success    = False
                 jn_msg          = JointState()
                 jn_msg.name     = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
-                jn_msg.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                jn_msg.position = [0, 0, 0, 0, 0, 0, alpha, alpha, alpha, alpha]
                 jn_msg.velocity = [0, 0, v, v, v, v, 0, 0, 0, 0]
                 jn_msg.effort   = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -82,11 +86,11 @@ class EncoderSimTest(unittest.TestCase):
 
         def test_steering(self):
                 v               = 0                             # Velocity [rad/s]
-                alpha           = math.pi/4.0                   # Orientation [rad]
+                alpha           = math.pi/2.0                   # Orientation [rad]
                 self.success    = False
                 jn_msg          = JointState()
                 jn_msg.name     = ['cam_pan', 'cam_tilt' 'drive_1_fl', 'drive_2_rl', 'drive_3_rr', 'drive_4_fr', 'steer_1_fl', 'steer_2_rl', 'steer_3_rr', 'steer_4_fr']
-                jn_msg.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                jn_msg.position = [0, 0, 0, 0, 0, 0, alpha, alpha, alpha, alpha]
                 jn_msg.velocity = [0, 0, v, v, v, v, 0, 0, 0, 0]
                 jn_msg.effort   = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -94,7 +98,7 @@ class EncoderSimTest(unittest.TestCase):
                 while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
                         self.enc_pub.publish(jn_msg)
                         time.sleep(0.1)
-                alpha_enc      = int(self.DRIVE_ENC_PPR/2.0)    # Orientation [pulses]
+                alpha_enc       = int(self.STEER_ENC_PPR/2.0)   # Orientation [pulses]
                 steer_pulses    = [alpha_enc, alpha_enc, alpha_enc, alpha_enc]
                 self.assertItemsEqual(self.steer_pulses, steer_pulses)
 
