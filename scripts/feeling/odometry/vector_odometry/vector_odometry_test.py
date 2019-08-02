@@ -42,7 +42,7 @@ class VecOdmTest(unittest.TestCase):
 
         self.assertEqual(vo.calculateOdometry(cmd),  [0.3, 0, 0])
 
-    def test_drive_l_motion(self):
+    def test_drive_r_motion(self):
         vel = [1, 1, 1, 1]
         ort = [-math.pi/2, -math.pi/2, -math.pi/2, -math.pi/2]
 
@@ -51,7 +51,7 @@ class VecOdmTest(unittest.TestCase):
 
         self.assertEqual(vo.calculateOdometry(cmd), [0, -1, 0])
 
-    def test_drive_r_motion(self):
+    def test_drive_l_motion(self):
         vel = [0.5, 0.5, 0.5, 0.5]
         ort = [math.pi/2, math.pi/2, math.pi/2, math.pi/2]
 
@@ -60,7 +60,7 @@ class VecOdmTest(unittest.TestCase):
 
         self.assertEqual(vo.calculateOdometry(cmd), [0, 0.5, 0])
 
-    def test_veer_l_motion(self):
+    def test_veer_r_motion(self):
         x = 0.5
         y = -0.25
         rz = 0
@@ -74,7 +74,7 @@ class VecOdmTest(unittest.TestCase):
         RZ = vo.roundValue(rz)
         self.assertEqual(vo.calculateOdometry(cmd), [X,Y,RZ])
 
-    def test_veer_r_motion(self):
+    def test_veer_l_motion(self):
         x = 0.5
         y = 0.7
         rz = 0
@@ -97,7 +97,7 @@ class VecOdmTest(unittest.TestCase):
 
         self.assertEqual(vo.calculateOdometry(cmd), [-1.5, 0, 0])
 
-    def test_steer_l_motion(self):
+    def test_steer_r_motion(self):
         x = 1
         y = -1
         rz = 0
@@ -111,7 +111,7 @@ class VecOdmTest(unittest.TestCase):
         RZ = vo.roundValue(rz)
         self.assertEqual(vo.calculateOdometry(cmd), [X,Y,RZ])
 
-    def test_steer_r_motion(self):
+    def test_steer_l_motion(self):
         x = 1
         y = 1
         rz = 0
@@ -125,7 +125,7 @@ class VecOdmTest(unittest.TestCase):
         RZ = vo.roundValue(rz)
         self.assertEqual(vo.calculateOdometry(cmd), [X,Y,RZ])
 
-    def test_backward_l_motion(self):
+    def test_backward_r_motion(self):
         x = -1
         y = -1
         rz = 0
@@ -140,7 +140,7 @@ class VecOdmTest(unittest.TestCase):
         RZ = vo.roundValue(rz)
         self.assertEqual(vo.calculateOdometry(cmd), [X,Y,RZ])
 
-    def test_backward_r_motion(self):
+    def test_backward_l_motion(self):
         x = -0.5
         y = 0.5
         rz = 0

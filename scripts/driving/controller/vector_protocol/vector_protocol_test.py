@@ -45,7 +45,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [[x, x, x, x],[0, 0, 0, 0]])
 
-    def test_drive_l_function(self):
+    def test_drive_r_function(self):
         x = 0
         y = -1
         rz = 0
@@ -57,7 +57,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-    def test_drive_r_function(self):
+    def test_drive_l_function(self):
         x = 0
         y = 0.5
         rz = 0
@@ -69,7 +69,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-    def test_veer_l_function(self):
+    def test_veer_r_function(self):
         x = 0.5
         y = -0.25
         rz = 0
@@ -81,7 +81,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-    def test_veer_r_function(self):
+    def test_veer_l_function(self):
         x = 0.5
         y = 0.7
         rz = 0
@@ -103,7 +103,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [[-1, -1, -1, -1],[0, 0, 0, 0]])
 
-    def test_steer_l_function(self):
+    def test_steer_r_function(self):
         x = 1
         y = -1
         rz = 0
@@ -115,7 +115,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-    def test_steer_r_function(self):
+    def test_steer_l_function(self):
         x = 1
         y = 1
         rz = 0
@@ -126,7 +126,7 @@ class VecProTest(unittest.TestCase):
         ort = vt.roundArray([math.atan2(y,x), math.atan2(y,x), math.atan2(y,x), math.atan2(y,x)])
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
-    def test_backward_l_function(self):
+    def test_backward_r_function(self):
         x = -1
         y = -1
         rz = 0
@@ -140,7 +140,7 @@ class VecProTest(unittest.TestCase):
 
         self.assertEqual(vt.translateMoveControl(cmd), [vel,ort])
 
-    def test_backward_r_function(self):
+    def test_backward_l_function(self):
         x = -0.5
         y = 0.5
         rz = 0

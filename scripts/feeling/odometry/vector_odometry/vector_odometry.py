@@ -30,12 +30,12 @@ class VectorOdometry:
         :param length: The distance between front and back wheels [m] (with the camera being 'front')
         :param width: The distance between right and left [m] (with the panel tilting 'right/left')
         """
-        self.rover_length = length
-        self.rover_width = width
+        self.rover_length = length                                              # [m]
+        self.rover_width = width                                                # [m]
         self.wheelIndex = ['front_left', 'rear_left', 'rear_right', 'front_right']
 
         # Angle between perpendicular velocity/distance to rover hypotinuse and zero steering orientation
-        self.beta = math.atan2(self.rover_width, self.rover_length)
+        self.beta = math.atan2(self.rover_width, self.rover_length)             # [m]
 
     def calculateRotationVelocity(self, driveValue, steerValue):
         """
@@ -48,18 +48,18 @@ class VectorOdometry:
         :param driveValue: Wheel velocity/distance array comprised of the four fover wheel ordered as in 'wheelIndex' [m/s]
         :param steerValue: Wheel orientation array comprised of the four fover wheel ordered as in 'wheelIndex' [rad]
         """
-        perpendicularValue              = [0, 0, 0, 0]                          # [m/s]
+        perpendicularValue              = [0, 0, 0, 0]                          # [m] or [m/s]
         for idx, wheel in enumerate(self.wheelIndex):
             if  idx == 0:
                 perpendicularValue[idx] = -math.cos(-math.pi/2-steerValue[idx]+self.beta)*driveValue[idx]
             elif idx == 2:
                 perpendicularValue[idx] = math.cos(-math.pi/2-steerValue[idx]+self.beta)*driveValue[idx]
             elif idx == 1:
-                perpendicularValue[idx] = -math.cos(math.pi/2-steerValue[idx]-self.beta)*driveValue[idx]                
+                perpendicularValue[idx] = -math.cos(math.pi/2-steerValue[idx]-self.beta)*driveValue[idx]
             elif idx == 3:
-                perpendicularValue[idx] = math.cos(math.pi/2-steerValue[idx]-self.beta)*driveValue[idx]                
+                perpendicularValue[idx] = math.cos(math.pi/2-steerValue[idx]-self.beta)*driveValue[idx]
         # Through the mean of all perpendicular velocities/distances the angular velocity/distance is estimated
-        angularValue = sum(perpendicularValue)/len(self.wheelIndex)
+        angularValue = sum(perpendicularValue)/len(self.wheelIndex)             # [m] or [m/s]
         return angularValue
 
     def calculateRotationVector(self, angularValue):
@@ -67,8 +67,8 @@ class VectorOdometry:
         Calculates the rotational vector component of each wheel velocity/distance vector.
         :param angularValue: Angular velocity/distance portion applied at each wheel
         """
-        angularValueX = [0, 0, 0, 0]
-        angularValueY = [0, 0, 0, 0]
+        angularValueX = [0, 0, 0, 0]                                            # [m] or [m/s]
+        angularValueY = [0, 0, 0, 0]                                            # [m] or [m/s]
         for idx, wheel in enumerate(self.wheelIndex):
             if idx <= 1: #assigns a positive X Rotation to all left wheels
                 angularValueX[idx] = -math.sin(self.beta)*angularValue
@@ -90,27 +90,27 @@ class VectorOdometry:
         :param angularValueY: Y component of the orientation vector indicating the rotational velocity/distance
         """
 
-        translationalSpeedX = [0, 0, 0, 0]
-        translationalSpeedY = [0, 0, 0, 0]
+        translationalValueX = [0, 0, 0, 0]                                      # [m] or [m/s]
+        translationalValueY = [0, 0, 0, 0]                                      # [m] or [m/s]
         for idx, wheel in enumerate(self.wheelIndex):
-            if idx <= 1: 
-                translationalSpeedX[idx] = math.cos(steerValue[idx])*driveValue[idx] - angularValueX[idx]
+            if idx <= 1:
+                translationalValueX[idx] = math.cos(steerValue[idx])*driveValue[idx] - angularValueX[idx]
             else:
-                translationalSpeedX[idx] = math.cos(steerValue[idx])*driveValue[idx] - angularValueX[idx]
-            if 1 <= idx <= 2: 
-                translationalSpeedY[idx] = math.sin(steerValue[idx])*driveValue[idx] - angularValueY[idx]
+                translationalValueX[idx] = math.cos(steerValue[idx])*driveValue[idx] - angularValueX[idx]
+            if 1 <= idx <= 2:
+                translationalValueY[idx] = math.sin(steerValue[idx])*driveValue[idx] - angularValueY[idx]
             else:
-                translationalSpeedY[idx] = math.sin(steerValue[idx])*driveValue[idx] - angularValueY[idx]
-        return [translationalSpeedX, translationalSpeedY]
+                translationalValueY[idx] = math.sin(steerValue[idx])*driveValue[idx] - angularValueY[idx]
+        return [translationalValueX, translationalValueY]
 
-    def calculateTranslationVelocity(self, translationalSpeedX, translationalSpeedY):
+    def calculateTranslationVelocity(self, translationalValueX, translationalValueY):
         """
         Forms the mean velocity/distance of all wheels.
-        :param translationalSpeedX: X component of the direction vector indicating the translational velocity/distance
-        :param translationalSpeedY: Y component of the direction vector indicating the translational velocity/distance
+        :param translationalValueX: X component of the direction vector indicating the translational velocity/distance
+        :param translationalValueY: Y component of the direction vector indicating the translational velocity/distance
         """
-        self.x = sum(translationalSpeedX)/len(self.wheelIndex)
-        self.y = sum(translationalSpeedY)/len(self.wheelIndex)
+        self.x = sum(translationalValueX)/len(self.wheelIndex)
+        self.y = sum(translationalValueY)/len(self.wheelIndex)
 
     def roundValue(self, value, digit = 10):
         """
@@ -123,10 +123,10 @@ class VectorOdometry:
 
     def calculateTurningRate(self, angularValue):
         """
-        Calculates the turning rate of the rover [rad/s]
+        Calculates the turning rate/turned angle of the rover [rad/s]/[rad]
         :param angularValue: Angular velocity/distance portion applied at each wheel
         """
-        self.rz = angularValue/(math.hypot(self.rover_width, self.rover_length)/2)
+        self.rz = angularValue/(math.hypot(self.rover_width, self.rover_length)/2)  # [rad] or [rad]
 
     def calculateOdometry(self, data):
         """
@@ -141,8 +141,8 @@ class VectorOdometry:
         angularValue = self.calculateRotationVelocity(data.driveValue, data.steerValue)
         self.calculateTurningRate(angularValue)
         [angularValueX, angularValueY] = self.calculateRotationVector(angularValue)
-        [translationalSpeedX, translationalSpeedY] = self.calculateTranslationVector(data.driveValue, data.steerValue, angularValueX, angularValueY)
-        self.calculateTranslationVelocity(translationalSpeedX, translationalSpeedY)
+        [translationalValueX, translationalValueY] = self.calculateTranslationVector(data.driveValue, data.steerValue, angularValueX, angularValueY)
+        self.calculateTranslationVelocity(translationalValueX, translationalValueY)
 
         self.x = self.roundValue(self.x)
         self.y = self.roundValue(self.y)

@@ -94,18 +94,16 @@ class OdometryPublisher(object):
             # Wheel indexes [front left, rear left, rear right, front right]
             wheelAngle              = [0, 0, 0, 0]                          # [rad]
             wheelSpeed              = [0, 0, 0, 0]                          # [rad/s]
-            # TODO: Adjust positive negative values according to SIDE of encoder
+
             for idx, wheel in enumerate(wheelIndex):
                 if idx <= 1: #assigns a positive orientation to all left wheels
                     # Calculate steering angle [rad]
-                    wheelAngle[idx] = (self.steer_pulses[idx]/self.STEER_ENC_PPR-0.5)*self.MAX_ORT      # Driving forward 0 rad
+                    wheelAngle[idx] = (self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT    # Driving forward 0 rad
                 else: #assigns a negative orientation to all right wheels
-                    wheelAngle[idx] = -(self.steer_pulses[idx]/self.STEER_ENC_PPR-0.5)*self.MAX_ORT     # Driving forward 0 rad
+                    wheelAngle[idx] = -(self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT   # Driving forward 0 rad
                 # Calculate driving velocity
-                wheelSpeedRad = self.drive_velocity[idx]/self.DRIVE_ENC_PPR*self.MAX_VEL                # Driving velocity [rad/s]
-                wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2                                   # Driving velocity  [m/s]
-
-
+                wheelSpeedRad = self.drive_velocity[idx]/self.DRIVE_ENC_PPR*2*math.pi                       # Driving velocity [rad/s]
+                wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2                                       # Driving velocity  [m/s]
 
             # Compute rover velocity from individual wheel velocities and orientations
             vo = VectorOdometry(self.rover_length, self.rover_width)
@@ -117,7 +115,7 @@ class OdometryPublisher(object):
 
 
             # Compute rover pose from individual distance traveled per wheel
-            circ = math.pi*self.wheel_diameter                                                          # Wheel circumferance
+            circ = math.pi*self.wheel_diameter                                              # Wheel circumferance
             wheelDistance = [0, 0, 0, 0]
             for idx, wheel in enumerate(wheelIndex):
                 wheelDistance[idx] = (self.drive_pulses[idx]-self.prev_drive_pulses[idx])/self.DRIVE_ENC_PPR*circ + (self.drive_revolutions[idx]-self.prev_drive_revolutions[idx])*circ
