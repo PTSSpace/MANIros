@@ -88,7 +88,6 @@ class OdometryPublisher(object):
         self.drive_velocity     = data.drive_velocity                   # Drive encoder velocity [pulses per second]
         self.steer_velocity     = data.steer_velocity                   # Steer encoder velocity [pulses per second]
 
-
     def odometry_publisher(self, event):
             # Individual wheel orientation and velocity
             # Wheel indexes [front left, rear left, rear right, front right]
@@ -96,15 +95,15 @@ class OdometryPublisher(object):
             wheelSpeed              = [0, 0, 0, 0]                          # [rad/s]
 
             for idx, wheel in enumerate(wheelIndex):
-                if idx <= 1: #assigns a positive orientation to all left wheels
+#                if idx <= 1: #assigns a positive orientation to all left wheels
                     # Calculate steering angle [rad]
-                    wheelAngle[idx] = (self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT    # Driving forward 0 rad
-                else: #assigns a negative orientation to all right wheels
-                    wheelAngle[idx] = -(self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT   # Driving forward 0 rad
+                wheelAngle[idx] = (self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT        # Driving forward 0 rad
+#                else: #assigns a negative orientation to all right wheels
+#                    wheelAngle[idx] = (self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT   # Driving forward 0 rad
                 # Calculate driving velocity
                 wheelSpeedRad = self.drive_velocity[idx]/self.DRIVE_ENC_PPR*2*math.pi                       # Driving velocity [rad/s]
-                wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2                                       # Driving velocity  [m/s]
-
+                wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2*1000                                  # Driving velocity  [m/s]
+            rospy.loginfo([wheelAngle, wheelSpeed])
             # Compute rover velocity from individual wheel velocities and orientations
             vo = VectorOdometry(self.rover_length, self.rover_width)
             velOdm = MotorControl ()
@@ -112,7 +111,7 @@ class OdometryPublisher(object):
             velOdm.steerValue = wheelAngle                                                  # Wheel rotation angle [rad]
             [self.vx, self.vy, self.wrz] = vo.calculateOdometry(velOdm)
 
-
+            #rospy.loginfo([self.vx, self.vy, self.wrz])
 
             # Compute rover pose from individual distance traveled per wheel
             circ = math.pi*self.wheel_diameter                                              # Wheel circumferance
@@ -130,6 +129,8 @@ class OdometryPublisher(object):
             # Update previous wheel state
             self.prev_drive_pulses = self.drive_pulses
             self.prev_drive_revolutions = self.drive_revolutions
+
+            rospy.loginfo([dx, dy, drz])
 
             current_time = rospy.Time.now()
             # Publish 6DOF transform from odometry yaw (rz rotation)
