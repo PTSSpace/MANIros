@@ -19,7 +19,7 @@ import math
 
 import rospy
 import tf2_ros
-from gazebo_msgs.msg import ModelState
+from gazebo_msgs.msg import ModelStates
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, TransformStamped
 import tf_conversions
@@ -40,7 +40,7 @@ class OdometrySimulationPublisher(object):
 
     def __init__(self, name):
         # Joint velocity and orientation subscriber
-        self.enc_sub = rospy.Subscriber("gazebo/model_states", ModelState, self.odometry_publisher, queue_size=10)
+        self.enc_sub = rospy.Subscriber("gazebo/model_states", ModelStates, self.odometry_publisher, queue_size=10)
         # Transform broardcaster odom -> base_link
         self.odom_bcr = tf2_ros.TransformBroadcaster()
         # Odometry publisher base_link
@@ -66,14 +66,14 @@ class OdometrySimulationPublisher(object):
         t = TransformStamped()
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "odom"
-        t.child_frame_id = data.reference_frame
-        t.transform.translation.x = data.pose.position.x
-        t.transform.translation.y = data.pose.position.y
-        t.transform.translation.z = data.pose.position.z
-        t.transform.rotation.x = data.pose.orientation.x
-        t.transform.rotation.y = data.pose.orientation.y
-        t.transform.rotation.z = data.pose.orientation.z
-        t.transform.rotation.w = data.pose.orientation.w
+        t.child_frame_id = data.name[1]
+        t.transform.translation.x = data.pose[0].position.x
+        t.transform.translation.y = data.pose[0].position.y
+        t.transform.translation.z = data.pose[0].position.z
+        t.transform.rotation.x = data.pose[0].orientation.x
+        t.transform.rotation.y = data.pose[0].orientation.y
+        t.transform.rotation.z = data.pose[0].orientation.z
+        t.transform.rotation.w = data.pose[0].orientation.w
         # Publish ROS transform
         self.odom_bcr.sendTransform(t)
 
@@ -82,9 +82,9 @@ class OdometrySimulationPublisher(object):
         odom = Odometry()
         odom.header.stamp = current_time
         odom.header.frame_id = "odom"
-        odom.child_frame_id = data.reference_frame
-        odom.pose.pose = data.pose
-        odom.twist.twist = data.twist
+        odom.child_frame_id = data.name[1]
+        odom.pose.pose = data.pose[0]
+        odom.twist.twist = data.twist[0]
         # Publish ROS odometry message
         self.odom_pub.publish(odom)
 
