@@ -67,13 +67,13 @@ class OdometrySimulationPublisher(object):
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "odom"
         t.child_frame_id = data.name[1]
-        t.transform.translation.x = data.pose[0].position.x
-        t.transform.translation.y = data.pose[0].position.y
-        t.transform.translation.z = data.pose[0].position.z
-        t.transform.rotation.x = data.pose[0].orientation.x
-        t.transform.rotation.y = data.pose[0].orientation.y
-        t.transform.rotation.z = data.pose[0].orientation.z
-        t.transform.rotation.w = data.pose[0].orientation.w
+        t.transform.translation.x = data.pose[1].position.x
+        t.transform.translation.y = data.pose[1].position.y
+        t.transform.translation.z = data.pose[1].position.z
+        t.transform.rotation.x = data.pose[1].orientation.x
+        t.transform.rotation.y = data.pose[1].orientation.y
+        t.transform.rotation.z = data.pose[1].orientation.z
+        t.transform.rotation.w = data.pose[1].orientation.w
         # Publish ROS transform
         self.odom_bcr.sendTransform(t)
 
@@ -83,8 +83,8 @@ class OdometrySimulationPublisher(object):
         odom.header.stamp = current_time
         odom.header.frame_id = "odom"
         odom.child_frame_id = data.name[1]
-        odom.pose.pose = data.pose[0]
-        odom.twist.twist = data.twist[0]
+        odom.pose.pose = data.pose[1]
+        odom.twist.twist = data.twist[1]
         # Publish ROS odometry message
         self.odom_pub.publish(odom)
 

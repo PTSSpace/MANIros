@@ -41,8 +41,8 @@ class OdmTest(unittest.TestCase):
         q = tf_conversions.transformations.quaternion_from_euler(0, 0, rz)
         state_msg = ModelStates()
         state_msg.name = ["ground_plane", "robot"]
-        state_msg.pose = [Pose(Point(x, y, 0.), Quaternion(*q))]
-        state_msg.twist = [Twist(Vector3(vx, vy, 0), Vector3(0, 0, wrz))]
+        state_msg.pose = [Pose(Point(0, 0, 0), Quaternion(0,0,0,1)), Pose(Point(x, y, 0), Quaternion(*q))]
+        state_msg.twist = [Twist(Vector3(0, 0, 0), Vector3(0, 0, 0)), Twist(Vector3(vx, vy, 0), Vector3(0, 0, wrz))]
 
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
@@ -86,8 +86,8 @@ class OdmTest(unittest.TestCase):
         q = tf_conversions.transformations.quaternion_from_euler(0, 0, rz)
         state_msg = ModelStates()
         state_msg.name = ["ground_plane", "robot"]
-        state_msg.pose = [Pose(Point(x, y, 0.), Quaternion(*q))]
-        state_msg.twist = [Twist(Vector3(vx, vy, 0), Vector3(0, 0, wrz))]
+        state_msg.pose = [Pose(Point(0, 0, 0), Quaternion(0,0,0,1)), Pose(Point(x, y, 0), Quaternion(*q))]
+        state_msg.twist = [Twist(Vector3(0, 0, 0), Vector3(0, 0, 0)), Twist(Vector3(vx, vy, 0), Vector3(0, 0, wrz))]
 
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
