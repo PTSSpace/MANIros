@@ -71,4 +71,4 @@ Each command further has its own indentifier number to indicate which node it is
 
 The ROS nodes for the teleoperation branch is visualised below in rqt_graph for the Gazeebo simmulation example:
 
-<img src="MANI_Teleoperation_Simulation_rqt_graph.png" width="600">
+<img src="MANI_Teleoperation_Simulation_rqt_graph.png" width="800">
