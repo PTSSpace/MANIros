@@ -10,7 +10,7 @@ source /opt/ros/kinetic/setup.bash
 # install ros dependencies
 apt-get install -y ros-kinetic-geometry
 apt-get install -y ros-kinetic-geometry2
-apt-get install -y ros-kinetic-gazebo_ros_pkgs
+apt-get install -y ros-kinetic-gazebo-ros-pkgs
 
 # create workspace
 mkdir -p ~/catkin_ws/src
