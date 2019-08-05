@@ -104,79 +104,79 @@ class OdometryPublisher(object):
         self.steer_velocity     = data.steer_velocity                   # Steer encoder velocity [pulses per second]
 
     def odometry_publisher(self, event):
-            # Individual wheel orientation and velocity
-            # Wheel indexes [front left, rear left, rear right, front right]
-            wheelAngle              = [0, 0, 0, 0]                          # [rad]
-            wheelSpeed              = [0, 0, 0, 0]                          # [rad/s]
+        # Individual wheel orientation and velocity
+        # Wheel indexes [front left, rear left, rear right, front right]
+        wheelAngle              = [0, 0, 0, 0]                          # [rad]
+        wheelSpeed              = [0, 0, 0, 0]                          # [rad/s]
 
-            for idx, wheel in enumerate(wheelIndex):
+        for idx, wheel in enumerate(wheelIndex):
 #                if idx <= 1: #assigns a positive orientation to all left wheels
-                    # Calculate steering angle [rad]
-                wheelAngle[idx] = (float(self.steer_pulses[idx])/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT        # Driving forward 0 rad
+                # Calculate steering angle [rad]
+            wheelAngle[idx] = (float(self.steer_pulses[idx])/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT        # Driving forward 0 rad
 #                else: #assigns a negative orientation to all right wheels
 #                    wheelAngle[idx] = (self.steer_pulses[idx]/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT   # Driving forward 0 rad
-                # Calculate driving velocity
-                wheelSpeedRad = float(self.drive_velocity[idx])/self.DRIVE_ENC_PPR*2.0*math.pi                     # Driving velocity [rad/s]
-                wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2.0                                     # Driving velocity  [m/s]
+            # Calculate driving velocity
+            wheelSpeedRad = float(self.drive_velocity[idx])/self.DRIVE_ENC_PPR*2.0*math.pi                     # Driving velocity [rad/s]
+            wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2.0                                     # Driving velocity  [m/s]
 #            rospy.loginfo([wheelAngle, wheelSpeed])
-            # Compute rover velocity from individual wheel velocities and orientations
-            vo = VectorOdometry(self.rover_length, self.rover_width)
-            velOdm = MotorControl ()
-            velOdm.driveValue = wheelSpeed                                                  # Wheel velocity [m/s]
-            velOdm.steerValue = wheelAngle                                                  # Wheel rotation angle [rad]
-            [vx, vy, wrz] = vo.calculateOdometry(velOdm)
+        # Compute rover velocity from individual wheel velocities and orientations
+        vo = VectorOdometry(self.rover_length, self.rover_width)
+        velOdm = MotorControl ()
+        velOdm.driveValue = wheelSpeed                                                  # Wheel velocity [m/s]
+        velOdm.steerValue = wheelAngle                                                  # Wheel rotation angle [rad]
+        [vx, vy, wrz] = vo.calculateOdometry(velOdm)
 
 #            rospy.loginfo([self.vx, self.vy, self.wrz])
 
-            # Compute rover pose from individual distance traveled per wheel
-            circ = math.pi*self.wheel_diameter                                              # Wheel circumferance
-            wheelDistance = [0, 0, 0, 0]
-            for idx, wheel in enumerate(wheelIndex):
+        # Compute rover pose from individual distance traveled per wheel
+        circ = math.pi*self.wheel_diameter                                              # Wheel circumferance
+        wheelDistance = [0, 0, 0, 0]
+        for idx, wheel in enumerate(wheelIndex):
 #                rospy.loginfo([float(self.drive_pulses[idx])/self.DRIVE_ENC_PPR, self.prev_drive_pulses[idx], self.drive_revolutions[idx], self.prev_drive_revolutions[idx]])
-                wheelDistance[idx] = (float(self.drive_pulses[idx]-self.prev_drive_pulses[idx])/self.DRIVE_ENC_PPR + float(self.drive_revolutions[idx]-self.prev_drive_revolutions[idx]))*circ
-            distOdm = MotorControl ()
-            distOdm.driveValue = wheelDistance                                              # Wheel velocity [m]
-            distOdm.steerValue = wheelAngle                                                 # Wheel rotation angle [rad]
+            wheelDistance[idx] = (float(self.drive_pulses[idx]-self.prev_drive_pulses[idx])/self.DRIVE_ENC_PPR + float(self.drive_revolutions[idx]-self.prev_drive_revolutions[idx]))*circ
+        distOdm = MotorControl ()
+        distOdm.driveValue = wheelDistance                                              # Wheel velocity [m]
+        distOdm.steerValue = wheelAngle                                                 # Wheel rotation angle [rad]
 #            rospy.loginfo([wheelAngle, wheelDistance])
-            [dx, dy, drz] = vo.calculateOdometry(distOdm)
-            # Update pose information
-            self.rz += drz
-            self.x += (math.cos(self.rz) * dx + math.sin(self.rz) * dy)
-            self.y += (math.sin(self.rz) * dx + math.cos(self.rz) * dy)
-            # Update velocity information
-            self.vx = (math.cos(self.rz) * vx + math.sin(self.rz) * vy)
-            self.vy = (math.sin(self.rz) * vx + math.cos(self.rz) * vy)
-            self.wrz = wrz
-            # Update previous wheel state
-            self.prev_drive_pulses = self.drive_pulses
-            self.prev_drive_revolutions = self.drive_revolutions
-            #rospy.loginfo(wheelDistance)
+        [dx, dy, drz] = vo.calculateOdometry(distOdm)
+        # Update pose information
+        self.rz += drz
+        self.x += (math.cos(self.rz) * dx + math.sin(self.rz) * dy)
+        self.y += (math.sin(self.rz) * dx + math.cos(self.rz) * dy)
+        # Update velocity information
+        self.vx = (math.cos(self.rz) * vx + math.sin(self.rz) * vy)
+        self.vy = (math.sin(self.rz) * vx + math.cos(self.rz) * vy)
+        self.wrz = wrz
+        # Update previous wheel state
+        self.prev_drive_pulses = self.drive_pulses
+        self.prev_drive_revolutions = self.drive_revolutions
+        #rospy.loginfo(wheelDistance)
 #            rospy.loginfo([self.x, self.y, self.rz])
 
-            current_time = rospy.Time.now()
-            # Publish 6DOF transform from odometry yaw (rz rotation)
-            t = TransformStamped()
-            t.header.stamp = current_time
-            t.header.frame_id = "odom"
-            t.child_frame_id = "base_link"
-            t.transform.translation.x = self.x
-            t.transform.translation.y = self.y
-            t.transform.translation.z = 0.0
-            q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.rz)
-            t.transform.rotation.x = q[0]
-            t.transform.rotation.y = q[1]
-            t.transform.rotation.z = q[2]
-            t.transform.rotation.w = q[3]
-            self.odom_bcr.sendTransform(t)
+        current_time = rospy.Time.now()
+        # Publish 6DOF transform from odometry yaw (rz rotation)
+        t = TransformStamped()
+        t.header.stamp = current_time
+        t.header.frame_id = "odom"
+        t.child_frame_id = "base_link"
+        t.transform.translation.x = self.x
+        t.transform.translation.y = self.y
+        t.transform.translation.z = 0.0
+        q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.rz)
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
+        self.odom_bcr.sendTransform(t)
 
-            # Publish ROS odometry message
-            odom = Odometry()
-            odom.header.stamp = current_time
-            odom.header.frame_id = "odom"
-            odom.child_frame_id = "base_link"
-            odom.pose.pose = Pose(Point(self.x, self.y, 0.), Quaternion(*q))
-            odom.twist.twist = Twist(Vector3(self.vx, self.vy, 0), Vector3(0, 0, self.wrz))
-            self.odom_pub.publish(odom)
+        # Publish ROS odometry message
+        odom = Odometry()
+        odom.header.stamp = current_time
+        odom.header.frame_id = "odom"
+        odom.child_frame_id = "base_link"
+        odom.pose.pose = Pose(Point(self.x, self.y, 0.), Quaternion(*q))
+        odom.twist.twist = Twist(Vector3(self.vx, self.vy, 0), Vector3(0, 0, self.wrz))
+        self.odom_pub.publish(odom)
 
 
     def shutdown(self):
@@ -187,7 +187,7 @@ Main
 """
 if __name__ == '__main__':
     # Start ROS node
-    rospy.init_node("odometry_publisher", anonymous=True)
+    rospy.init_node("odometry_node", anonymous=True)
 
     # Start ROS action
     server = OdometryPublisher(rospy.get_name())
