@@ -1,0 +1,4 @@
+# Service for resetting the rover odometry to koordinate system origin
+bool reset
+---
+bool status

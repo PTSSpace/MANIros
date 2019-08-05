@@ -139,9 +139,15 @@ class VectorOdometry:
         self.rz = 0
 
         angularValue = self.calculateRotationVelocity(data.driveValue, data.steerValue)
+#        print ('VO angular value %f' % angularValue)
         self.calculateTurningRate(angularValue)
+#        print ('VO turning rate %f' % self.rz)
         [angularValueX, angularValueY] = self.calculateRotationVector(angularValue)
+#        print('VO angularXY')
+#        print ([angularValueX, angularValueY])
         [translationalValueX, translationalValueY] = self.calculateTranslationVector(data.driveValue, data.steerValue, angularValueX, angularValueY)
+#        print ('VO translationalXY')
+#        print ([translationalValueX, translationalValueY])
         self.calculateTranslationVelocity(translationalValueX, translationalValueY)
 
         self.x = self.roundValue(self.x)
