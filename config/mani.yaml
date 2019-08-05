@@ -1,7 +1,7 @@
 # Rover Dimension in [m]
 rover_length: 0.436
-rover_width: 0.475
-rover_height: 0.452
+rover_width: 0.4467
+rover_height: 0.398998                  # Meassured from dirve motor shaft to stero camera center in z-direction
 
 wheel_diameter: 0.13677
 

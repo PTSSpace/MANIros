@@ -34,7 +34,7 @@ from vector_odometry.vector_odometry import VectorOdometry
 Global variables
 """
 
-PUB_RATE                = 1                                                         # Rate to publish odometry data [Hz]
+PUB_RATE                = 50.0                                                      # Rate to publish odometry data [Hz]
 wheelIndex              = ['front_left', 'rear_left', 'rear_right', 'front_right']  # Wheel location on rover
 
 """
@@ -71,7 +71,7 @@ class OdometryPublisher(object):
         # Odometry publisher base_link
         self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=50)
         # Start ROS publisher for encoder odometry
-        self.timer = rospy.Timer(rospy.Duration(1/PUB_RATE), self.odometry_publisher)
+        self.timer = rospy.Timer(rospy.Duration(1.0/PUB_RATE), self.odometry_publisher)
 
         # Get ros parameters
         self.rover_length       = rospy.get_param("/rover_length")      # Rover length [m]
@@ -124,7 +124,7 @@ class OdometryPublisher(object):
             velOdm = MotorControl ()
             velOdm.driveValue = wheelSpeed                                                  # Wheel velocity [m/s]
             velOdm.steerValue = wheelAngle                                                  # Wheel rotation angle [rad]
-            [self.vx, self.vy, self.wrz] = vo.calculateOdometry(velOdm)
+            [vx, vy, wrz] = vo.calculateOdometry(velOdm)
 
 #            rospy.loginfo([self.vx, self.vy, self.wrz])
 
@@ -140,9 +140,13 @@ class OdometryPublisher(object):
 #            rospy.loginfo([wheelAngle, wheelDistance])
             [dx, dy, drz] = vo.calculateOdometry(distOdm)
             # Update pose information
-            self.x += dx
-            self.y += dy
             self.rz += drz
+            self.x += (math.cos(self.rz) * dx + math.sin(self.rz) * dy)
+            self.y += (math.sin(self.rz) * dx + math.cos(self.rz) * dy)
+            # Update velocity information
+            self.vx = (math.cos(self.rz) * vx + math.sin(self.rz) * vy)
+            self.vy = (math.sin(self.rz) * vx + math.cos(self.rz) * vy)
+            self.wrz = wrz
             # Update previous wheel state
             self.prev_drive_pulses = self.drive_pulses
             self.prev_drive_revolutions = self.drive_revolutions

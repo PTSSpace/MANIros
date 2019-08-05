@@ -24,7 +24,7 @@ from sensor_msgs.msg import JointState
 """
 Global variables
 """
-PUB_RATE 				= 5.0													# Rate to publish odometry data [Hz]
+PUB_RATE 				= 50.0													# Rate to publish odometry data [Hz]
 
 """
 Classes

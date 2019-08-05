@@ -28,7 +28,6 @@ import tf_conversions
 Global variables
 """
 
-PUB_RATE                = 1                                                         # Rate to publish odometry data [Hz]
 wheelIndex              = ['front_left', 'rear_left', 'rear_right', 'front_right']  # Wheel location on rover
 
 """
