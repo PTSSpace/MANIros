@@ -3,7 +3,7 @@ rover_length: 0.436
 rover_width: 0.475
 rover_height: 0.452
 
-wheel_diameter: 0.200
+wheel_diameter: 0.13677
 
 # Initial Camera Position in [m]
 # (Guessed values)
