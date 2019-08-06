@@ -22,7 +22,7 @@ class OdmTest(unittest.TestCase):
     def __init__(self, *args):
         super(OdmTest, self).__init__(*args)
         rospy.init_node("test_input", anonymous=True)
-        self.enc_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
+        self.enc_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=1)
         rospy.Subscriber("odom", Odometry, self.callback)
         self.tfBuffer = tf2_ros.Buffer()
         listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -63,16 +63,24 @@ class OdmTest(unittest.TestCase):
                 rate.sleep()
                 continue
         return set
-
-    def test_01_reset_service(self):
+    
+    def test_06_reset_service(self):
         success = self.reset_odometry()
         self.assertTrue(success, 'Odometry service reset failed')
 
-    def test_02_transformation_broadcaster(self):
+    def test_01_transformation_broadcaster(self):
         success = False
+        # Create mock rover translation message
+        enc_msg = EncoderOdometry()
+        enc_msg.drive_pulses       = [0, 0, 0, 0]                                   # Drive encoder pulses
+        enc_msg.steer_pulses       = [0, 0, 0, 0]                                   # Steer encoder pulses
+        enc_msg.drive_revolutions  = [0, 0, 0, 0]                                   # Drive encoder wheel revolutions
+        enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
+        enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
         while not rospy.is_shutdown() and not success and time.time() < timeout_t:
+            self.enc_pub.publish(enc_msg)
             success = True
             try:
                 data = self.tfBuffer.lookup_transform('base_link', 'odom', rospy.Time())
@@ -88,17 +96,24 @@ class OdmTest(unittest.TestCase):
         self.twist = data.twist.twist
         rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s" % (data.header.frame_id, data.child_frame_id))
         self.success = True
-
+    
     def test_03_odometry_publisher(self):
-        self.success = False
+        # Create mock rover translation message
+        enc_msg = EncoderOdometry()
+        enc_msg.drive_pulses       = [0, 0, 0, 0]                                   # Drive encoder pulses
+        enc_msg.steer_pulses       = [0, 0, 0, 0]                                   # Steer encoder pulses
+        enc_msg.drive_revolutions  = [0, 0, 0, 0]                                   # Drive encoder wheel revolutions
+        enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
+        enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
+        self.success = False
         while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
+            self.enc_pub.publish(enc_msg)
             rate.sleep()
         self.assertTrue(self.success, 'Odometry message was not sent')
 
-    def test_05_basic_translation_odometry(self):
-        success = False
+    def test_04_basic_translation_odometry(self):
         # Create mock rover translation message
         enc_msg = EncoderOdometry()
         enc_msg.drive_pulses       = [100, 100, 100, 100]                           # Drive encoder pulses
@@ -113,6 +128,7 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            success = False
             while not rospy.is_shutdown() and not success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 # Check for accurate odometry
@@ -122,8 +138,7 @@ class OdmTest(unittest.TestCase):
                 rate.sleep()
         self.assertTrue(success, 'False odometry interpretation')
 
-    def test_04_basic_drive_odometry(self):
-        success = False
+    def test_03_basic_drive_odometry(self):
         # Create mock rover drive message
         enc_msg = EncoderOdometry()
         enc_msg.drive_pulses       = [1000, 1000, 1000, 1000]                       # Drive encoder pulses
@@ -138,6 +153,7 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            success = False
             while not rospy.is_shutdown() and not success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 # Check for accurate odometry
@@ -147,8 +163,7 @@ class OdmTest(unittest.TestCase):
                 rate.sleep()
         self.assertTrue(success, 'False odometry interpretation')
 
-    def test_06_basic_roation_odometry(self):
-        success = False
+    def test_05_basic_roation_odometry(self):
         # Create mock rover drive message
         enc_msg = EncoderOdometry()
         enc_msg.drive_pulses       = [-4000, -4000, 4000, 4000]                           # Drive encoder pulses
@@ -163,6 +178,7 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            success = False
             while not rospy.is_shutdown() and not success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 # Check for accurate odometry
@@ -173,7 +189,6 @@ class OdmTest(unittest.TestCase):
         self.assertTrue(success, 'False odometry interpretation')
 
     def test_07_drive_odometry(self):
-        self.success = False
         v_enc = self.DRIVE_ENC_PPR
         alpha_enc = self.STEER_ENC_PPR/4.0
         # Create mock rover drive message
@@ -183,6 +198,9 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        # Correct odometry output
+        v = math.pi*self.wheel_diameter
+        v = self.roundValue(v)
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -190,16 +208,17 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            self.success = False
             while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 rate.sleep()
-        # Check for accurate odometry
+        # Correct odometry output
         v = math.pi*self.wheel_diameter
         v = self.roundValue(v)
+        # Check for accurate odometry
         self.assertEqual(self.twist.linear, Vector3(v, 0, 0))
-
+    
     def test_08_translation_f_odometry(self):
-        self.success = False
         p_enc = 0
         r_enc = 5
         v_enc = 0
@@ -218,18 +237,18 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            self.success = False
             while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 rate.sleep()
-        # Check for accurate odometry
+        # Correct odometry output
         circ = math.pi*self.wheel_diameter
-        #x = (r_enc + (p_enc/self.STEER_ENC_PPR))*circ
-        #x = self.roundValue(x)
-        x = self.roundValue((r_enc + p_enc/self.DRIVE_ENC_PPR)*circ)
+        x = (r_enc + p_enc/self.DRIVE_ENC_PPR)*circ
+        x = self.roundValue(x)
+        # Check for accurate odometry
         self.assertEqual(self.pose.position, Point(x, 0, 0))
 
     def test_09_translation_b_odometry(self):
-        self.success = False
         p_enc =  -self.DRIVE_ENC_PPR/2.0
         r_enc = -10
         v_enc = 0
@@ -248,16 +267,17 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            self.success = False
             while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 rate.sleep()
-        # Check for accurate odometry
+        # Correct odometry output
         circ = math.pi*self.wheel_diameter
         x = self.roundValue((r_enc + p_enc/self.DRIVE_ENC_PPR)*circ)
+        # Check for accurate odometry
         self.assertEqual(self.pose.position, Point(x, 0, 0))
 
     def test_10_tranlation_r_odometry(self):
-        self.success = False
         p_enc = self.DRIVE_ENC_PPR/4.0
         r_enc = 10
         v_enc = 0
@@ -276,17 +296,18 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            self.success = False
             while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 rate.sleep()
-        # Check for accurate odometry
+        # Correct odometry output
         circ = math.pi*self.wheel_diameter
         y = -self.roundValue((r_enc + p_enc/self.DRIVE_ENC_PPR)*circ)
+        # Check for accurate odometry
         self.assertEqual(self.pose.position, Point(0, y, 0))
 
 
     def test_11_tranlation_l_odometry(self):
-        self.success = False
         p_enc = 0
         r_enc = 10
         v_enc = 0
@@ -305,12 +326,14 @@ class OdmTest(unittest.TestCase):
 
             timeout_t = time.time() + 10.0  # 10 s
             rate = rospy.Rate(10)           # 10 Hz
+            self.success = False
             while not rospy.is_shutdown() and not self.success and time.time() < timeout_t:
                 self.enc_pub.publish(enc_msg)
                 rate.sleep()
-        # Check for accurate odometry
+        # Correct odometry output
         circ = math.pi*self.wheel_diameter
         y = self.roundValue((r_enc + p_enc/self.DRIVE_ENC_PPR)*circ)
+        # Check for accurate odometry
         self.assertEqual(self.pose.position, Point(0, y, 0))
 
 if __name__ == '__main__':
