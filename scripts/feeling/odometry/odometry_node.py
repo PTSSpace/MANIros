@@ -4,12 +4,17 @@
 This program provides a ROS node to pusblish odometry from the locomotion encoders.
 Encoder information is receved in the form of pulses and revolution.
 The values are transformed into an absolute rotation and translation of the /base_link frame.
-The odometry forwarded to the navigation stack.
+The odometry forwarded to the navigation stack by means of an Odometry message and a ROS Transform.
+The odometry can be reset to origin by using he reset service.
 
 Subscribed ROS topics:
 *   encoder_odometry
 Published ROS topics:
 *   odom
+*   odom_bcr (Transform odom -> base_link)
+ROS services:
+*   reset_odometry
+
 
 """
 
@@ -57,14 +62,14 @@ class OdometryPublisher(object):
 
         self.odmMutex               = Lock()
         self.encMutex               = Lock()
-        self.reset                  = False
-        self.initialised            = False                        # Node initialisation by odometry subscription
+        self.reset                  = False                         # Odometry reset flag
+        self.initialised            = False                         # Node initialisation by odometry subscription
 
-        self.drive_pulses           = [0, 0, 0, 0]                 # Drive encoder pulses
-        self.steer_pulses           = [0, 0, 0, 0]                 # Steer encoder pulses
-        self.drive_revolutions      = [0, 0, 0, 0]                 # Drive encoder wheel revolutions
-        self.drive_velocity         = [0, 0, 0, 0]                 # Drive encoder velocity [pulses per second]
-        self.steer_velocity         = [0, 0, 0, 0]                 # Steer encoder velocity [pulses per second]
+        self.drive_pulses           = [0, 0, 0, 0]                  # Drive encoder pulses
+        self.steer_pulses           = [0, 0, 0, 0]                  # Steer encoder pulses
+        self.drive_revolutions      = [0, 0, 0, 0]                  # Drive encoder wheel revolutions
+        self.drive_velocity         = [0, 0, 0, 0]                  # Drive encoder velocity [pulses per second]
+        self.steer_velocity         = [0, 0, 0, 0]                  # Steer encoder velocity [pulses per second]
         self.prev_drive_pulses      = [0, 0, 0, 0]
         self.prev_drive_revolutions = [0, 0, 0, 0]
 
@@ -89,8 +94,8 @@ class OdometryPublisher(object):
         self.timer = rospy.Timer(rospy.Duration(1.0/PUB_RATE), self.odometry_publisher)
 
     def reset_odometry(self, req):
-        # Reset odom frame origin
         if req.reset:
+            # Reset odom frame origin
             with self.odmMutex:
                 self.x      = 0.0
                 self.y      = 0.0
@@ -100,6 +105,7 @@ class OdometryPublisher(object):
                 self.wrz    = 0.0
                 self.prev_drive_pulses = [0, 0, 0, 0]
                 self.prev_drive_revolutions = [0, 0, 0, 0]
+                # Set reset and new initialisation flag
                 self.reset = True
                 self.initialised = False
                 rospy.loginfo('reset')
@@ -113,31 +119,33 @@ class OdometryPublisher(object):
             self.drive_revolutions  = data.drive_revolutions                # Drive encoder wheel revolutions
             self.drive_velocity     = data.drive_velocity                   # Drive encoder velocity [pulses per second]
             self.steer_velocity     = data.steer_velocity                   # Steer encoder velocity [pulses per second]
+            # Set initialisation flag
             if not self.initialised:
-                self.initialised = True
+                self.initialised    = True
 
     def odometry_publisher(self, event):
+        # Check if node has been initialised or reset
         if self.initialised:
             # Clear reset flag for new input
             with self.odmMutex:
                 self.reset = False
             # Individual wheel orientation and velocity
             # Wheel indexes [front left, rear left, rear right, front right]
-            wheelAngle              = [0, 0, 0, 0]                          # [rad]
-            wheelSpeed              = [0, 0, 0, 0]                          # [rad/s]
+            wheelAngle              = [0, 0, 0, 0]                                  # [rad]
+            wheelSpeed              = [0, 0, 0, 0]                                  # [rad/s]
 
             # Wheel stats and individual distance traeled
-            circ = math.pi*self.wheel_diameter                                              # Wheel circumferance
-            wheelDistance = [0, 0, 0, 0]
+            circ                    = math.pi*self.wheel_diameter                   # Wheel circumferance
+            wheelDistance           = [0, 0, 0, 0]
 
             for idx, wheel in enumerate(wheelIndex):
                 with self.encMutex:
                     # Calculate steering angle [rad]
-                    wheelAngle[idx] = (float(self.steer_pulses[idx])/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT        # Driving forward 0 rad
+                    wheelAngle[idx] = (float(self.steer_pulses[idx])/(self.STEER_ENC_PPR/4.0)-1.0)*self.MAX_ORT     # Driving forward 0 rad
 
                     # Calculate driving velocity
-                    wheelSpeedRad = float(self.drive_velocity[idx])/self.DRIVE_ENC_PPR*2.0*math.pi                     # Driving velocity [rad/s]
-                    wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2.0                                     # Driving velocity  [m/s]
+                    wheelSpeedRad = float(self.drive_velocity[idx])/self.DRIVE_ENC_PPR*2.0*math.pi                  # Driving velocity [rad/s]
+                    wheelSpeed[idx] = wheelSpeedRad*self.wheel_diameter/2.0                                         # Driving velocity  [m/s]
 
                 with self.odmMutex:
                     # Calculate individual distance traveled per wheel
@@ -147,25 +155,25 @@ class OdometryPublisher(object):
             # Compute rover velocity from individual wheel velocities and orientations
             vo = VectorOdometry(self.rover_length, self.rover_width)
             velOdm = MotorControl ()
-            velOdm.driveValue = wheelSpeed                                                  # Wheel velocity [m/s]
-            velOdm.steerValue = wheelAngle                                                  # Wheel rotation angle [rad]
+            velOdm.driveValue = wheelSpeed                                          # Wheel velocity [m/s]
+            velOdm.steerValue = wheelAngle                                          # Wheel rotation angle [rad]
             [vx, vy, wrz] = vo.calculateOdometry(velOdm)
 
 #        rospy.loginfo([self.vx, self.vy, self.wrz])
 
             # Compute rover pose from individual distance traveled per wheel
             distOdm = MotorControl ()
-            distOdm.driveValue = wheelDistance                                              # Wheel velocity [m]
-            distOdm.steerValue = wheelAngle                                                 # Wheel rotation angle [rad]
+            distOdm.driveValue = wheelDistance                                      # Wheel velocity [m]
+            distOdm.steerValue = wheelAngle                                         # Wheel rotation angle [rad]
 #            rospy.loginfo([wheelAngle, wheelDistance])
             [dx, dy, drz] = vo.calculateOdometry(distOdm)
             with self.odmMutex:
                 # Update pose information
                 self.rz += drz
-                self.x += (math.cos(self.rz) * dx + math.sin(self.rz) * dy)
+                self.x += (math.cos(self.rz) * dx - math.sin(self.rz) * dy)
                 self.y += (math.sin(self.rz) * dx + math.cos(self.rz) * dy)
                 # Update velocity information
-                self.vx = (math.cos(self.rz) * vx + math.sin(self.rz) * vy)
+                self.vx = (math.cos(self.rz) * vx - math.sin(self.rz) * vy)
                 self.vy = (math.sin(self.rz) * vx + math.cos(self.rz) * vy)
                 self.wrz = wrz
 #               rospy.loginfo([self.vx, self.vy, self.wrz])

@@ -63,7 +63,7 @@ class OdmTest(unittest.TestCase):
                 rate.sleep()
                 continue
         return set
-    
+
     def test_06_reset_service(self):
         success = self.reset_odometry()
         self.assertTrue(success, 'Odometry service reset failed')
@@ -96,7 +96,7 @@ class OdmTest(unittest.TestCase):
         self.twist = data.twist.twist
         rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s" % (data.header.frame_id, data.child_frame_id))
         self.success = True
-    
+
     def test_03_odometry_publisher(self):
         # Create mock rover translation message
         enc_msg = EncoderOdometry()
@@ -217,7 +217,7 @@ class OdmTest(unittest.TestCase):
         v = self.roundValue(v)
         # Check for accurate odometry
         self.assertEqual(self.twist.linear, Vector3(v, 0, 0))
-    
+
     def test_08_translation_f_odometry(self):
         p_enc = 0
         r_enc = 5
