@@ -60,6 +60,7 @@ class OdometryPublisher(object):
         self.vy     = 0.0
         self.wrz    = 0.0
 
+        # Locks and state variables for access of working variables
         self.odmMutex               = Lock()
         self.encMutex               = Lock()
         self.reset                  = False                         # Odometry reset flag
@@ -108,7 +109,6 @@ class OdometryPublisher(object):
                 # Set reset and new initialisation flag
                 self.reset = True
                 self.initialised = False
-                rospy.loginfo('reset')
         return req.reset
 
     def get_encoder_values(self, data):
@@ -128,7 +128,7 @@ class OdometryPublisher(object):
         if self.initialised:
             # Clear reset flag for new input
             with self.odmMutex:
-                self.reset = False
+                self.reset          = False
             # Individual wheel orientation and velocity
             # Wheel indexes [front left, rear left, rear right, front right]
             wheelAngle              = [0, 0, 0, 0]                                  # [rad]
@@ -151,7 +151,6 @@ class OdometryPublisher(object):
                     # Calculate individual distance traveled per wheel
                     wheelDistance[idx] = (float(self.drive_pulses[idx]-self.prev_drive_pulses[idx])/self.DRIVE_ENC_PPR + float(self.drive_revolutions[idx]-self.prev_drive_revolutions[idx]))*circ
 
-#            rospy.loginfo([wheelAngle, wheelSpeed])
             # Compute rover velocity from individual wheel velocities and orientations
             vo = VectorOdometry(self.rover_length, self.rover_width)
             velOdm = MotorControl ()
@@ -159,14 +158,12 @@ class OdometryPublisher(object):
             velOdm.steerValue = wheelAngle                                          # Wheel rotation angle [rad]
             [vx, vy, wrz] = vo.calculateOdometry(velOdm)
 
-#        rospy.loginfo([self.vx, self.vy, self.wrz])
-
             # Compute rover pose from individual distance traveled per wheel
             distOdm = MotorControl ()
             distOdm.driveValue = wheelDistance                                      # Wheel velocity [m]
             distOdm.steerValue = wheelAngle                                         # Wheel rotation angle [rad]
-#            rospy.loginfo([wheelAngle, wheelDistance])
             [dx, dy, drz] = vo.calculateOdometry(distOdm)
+
             with self.odmMutex:
                 # Update pose information
                 self.rz += drz
@@ -176,7 +173,6 @@ class OdometryPublisher(object):
                 self.vx = (math.cos(self.rz) * vx - math.sin(self.rz) * vy)
                 self.vy = (math.sin(self.rz) * vx + math.cos(self.rz) * vy)
                 self.wrz = wrz
-#               rospy.loginfo([self.vx, self.vy, self.wrz])
                 # Update previous wheel state
                 if self.reset:
                     self.prev_drive_pulses = [0, 0, 0, 0]
@@ -210,9 +206,6 @@ class OdometryPublisher(object):
                     odom.pose.pose = Pose(Point(self.x, self.y, 0.), Quaternion(*q))
                     odom.twist.twist = Twist(Vector3(self.vx, self.vy, 0), Vector3(0, 0, self.wrz))
                     self.odom_pub.publish(odom)
-                #rospy.loginfo(wheelDistance)
-                rospy.loginfo([self.x, self.y, self.rz])
-
 
     def shutdown(self):
         rospy.loginfo("Shutting down odometry node")

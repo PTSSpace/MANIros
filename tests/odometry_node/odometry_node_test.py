@@ -64,9 +64,12 @@ class OdmTest(unittest.TestCase):
                 continue
         return set
 
-    def test_06_reset_service(self):
-        success = self.reset_odometry()
-        self.assertTrue(success, 'Odometry service reset failed')
+    def callback(self, data):
+        # Get encoder values from encoder_odometry topic
+        self.pose = data.pose.pose
+        self.twist = data.twist.twist
+        rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s" % (data.header.frame_id, data.child_frame_id))
+        self.success = True
 
     def test_01_transformation_broadcaster(self):
         success = False
@@ -90,14 +93,7 @@ class OdmTest(unittest.TestCase):
                 continue
         self.assertTrue(self.success, 'Transform message was not sent')
 
-    def callback(self, data):
-        # Get encoder values from encoder_odometry topic
-        self.pose = data.pose.pose
-        self.twist = data.twist.twist
-        rospy.loginfo("Odometry message received: header_frame_id: %s child_frame_id: %s" % (data.header.frame_id, data.child_frame_id))
-        self.success = True
-
-    def test_03_odometry_publisher(self):
+    def test_02_odometry_publisher(self):
         # Create mock rover translation message
         enc_msg = EncoderOdometry()
         enc_msg.drive_pulses       = [0, 0, 0, 0]                                   # Drive encoder pulses
@@ -112,31 +108,6 @@ class OdmTest(unittest.TestCase):
             self.enc_pub.publish(enc_msg)
             rate.sleep()
         self.assertTrue(self.success, 'Odometry message was not sent')
-
-    def test_04_basic_translation_odometry(self):
-        # Create mock rover translation message
-        enc_msg = EncoderOdometry()
-        enc_msg.drive_pulses       = [100, 100, 100, 100]                           # Drive encoder pulses
-        enc_msg.steer_pulses       = [0, 0, 0, 0]                                   # Steer encoder pulses
-        enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
-        enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
-        enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
-        # Reset odometry
-        if self.reset_odometry():
-            # Publish encoder message
-            self.enc_pub.publish(enc_msg)
-
-            timeout_t = time.time() + 10.0  # 10 s
-            rate = rospy.Rate(10)           # 10 Hz
-            success = False
-            while not rospy.is_shutdown() and not success and time.time() < timeout_t:
-                self.enc_pub.publish(enc_msg)
-                # Check for accurate odometry
-                if (self.pose.position != Point(0, 0, 0)
-                    and self.twist == Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))):
-                    success = True
-                rate.sleep()
-        self.assertTrue(success, 'False odometry interpretation')
 
     def test_03_basic_drive_odometry(self):
         # Create mock rover drive message
@@ -163,13 +134,38 @@ class OdmTest(unittest.TestCase):
                 rate.sleep()
         self.assertTrue(success, 'False odometry interpretation')
 
+    def test_04_basic_translation_odometry(self):
+        # Create mock rover translation message
+        enc_msg = EncoderOdometry()
+        enc_msg.drive_pulses       = [100, 100, 100, 100]                           # Drive encoder pulses
+        enc_msg.steer_pulses       = [0, 0, 0, 0]                                   # Steer encoder pulses
+        enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
+        enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
+        enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        # Reset odometry
+        if self.reset_odometry():
+            # Publish encoder message
+            self.enc_pub.publish(enc_msg)
+
+            timeout_t = time.time() + 10.0  # 10 s
+            rate = rospy.Rate(10)           # 10 Hz
+            success = False
+            while not rospy.is_shutdown() and not success and time.time() < timeout_t:
+                self.enc_pub.publish(enc_msg)
+                # Check for accurate odometry
+                if (self.pose.position != Point(0, 0, 0)
+                    and self.twist == Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))):
+                    success = True
+                rate.sleep()
+        self.assertTrue(success, 'False odometry interpretation')
+
     def test_05_basic_roation_odometry(self):
         # Create mock rover drive message
         enc_msg = EncoderOdometry()
-        enc_msg.drive_pulses       = [-4000, -4000, 4000, 4000]                           # Drive encoder pulses
-        enc_msg.steer_pulses       = [1000, 3000, 1000, 3000]                         # Steer encoder pulses
-        enc_msg.drive_revolutions  = [-1, -1, 1, 1]                                   # Drive encoder wheel revolutions
-        enc_msg.drive_velocity     = [-1000, -1000, 1000, 1000]                           # Drive encoder velocity [pulses per second]
+        enc_msg.drive_pulses       = [-4000, -4000, 4000, 4000]                     # Drive encoder pulses
+        enc_msg.steer_pulses       = [1000, 3000, 1000, 3000]                       # Steer encoder pulses
+        enc_msg.drive_revolutions  = [-1, -1, 1, 1]                                 # Drive encoder wheel revolutions
+        enc_msg.drive_velocity     = [-1000, -1000, 1000, 1000]                     # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
         # Reset odometry
         if self.reset_odometry():
@@ -188,13 +184,17 @@ class OdmTest(unittest.TestCase):
                 rate.sleep()
         self.assertTrue(success, 'False odometry interpretation')
 
+    def test_06_reset_service(self):
+        success = self.reset_odometry()
+        self.assertTrue(success, 'Odometry service reset failed')
+
     def test_07_drive_odometry(self):
         v_enc = self.DRIVE_ENC_PPR
         alpha_enc = self.STEER_ENC_PPR/4.0
         # Create mock rover drive message
         enc_msg = EncoderOdometry()
         enc_msg.drive_pulses       = [0, 0, 0, 0]                                   # Drive encoder pulses
-        enc_msg.steer_pulses       = [alpha_enc, alpha_enc, alpha_enc, alpha_enc]                                   # Steer encoder pulses
+        enc_msg.steer_pulses       = [alpha_enc, alpha_enc, alpha_enc, alpha_enc]   # Steer encoder pulses
         enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
