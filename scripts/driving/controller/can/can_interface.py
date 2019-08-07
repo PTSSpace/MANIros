@@ -48,7 +48,7 @@ class CANListener(can.Listener):
     """CAN Listener class to receive can node feedback"""
     def __init__(self):
         # Bus feedback variables
-        self.activity           = [0, 0, 0, 0, 0]                   # Wheel controller activity
+        self.activity           = [0, 0, 0, 0, 0]                   # CAN node activity
         # Electrical Power Supply (EPS)
         self.current            = [.0, .0, .0, .0, .0]
         self.epsPowerQueue      = Queue.Queue(maxsize=10)           # EPS power switch toggled
@@ -59,7 +59,7 @@ class CANListener(can.Listener):
         self.orientation        = [0, 0, 0, 0]                      # Steer motor orientation [pulses]
         self.velocity           = [0, 0, 0, 0]                      # Drive motor velocity [pulses/s]
         self.pulses             = [0, 0, 0, 0]                      # Drive motor orientation [pulses]
-        self.revolutions        = [0, 0, 0, 0]                      # Drive motor rotations
+        self.revolutions        = [0, 0, 0, 0]                      # Drive motor revolutions
         self.lcMsgQueue         = Queue.Queue(maxsize=10)           # Orientation reached feedback
 
     def on_message_received(self, rxMsg):
@@ -133,13 +133,13 @@ class CANListener(can.Listener):
 
     @staticmethod
     def unwrap_message_format(value, type):
-        # Scale to float number [0..1]
+        # Scale to float number [-1..1]
         value = float(value) /MAX_VALUE
         return value
 
     @staticmethod
     def wrap_message_format(value):
-        # Scale to integer number [0..MAX_VALUE]
+        # Scale to integer number [-MAX_VALUE..MAX_VALUE]
         value = int(value) *MAX_VALUE
         return value
 
@@ -171,8 +171,10 @@ class CANInterface():
         for x in values:
             # Check data type
             if type(x) == int:
-                data = data + struct.pack('i',x)
+                # Pack as signed short int (2 bytes)
+                data = data + struct.pack('h',x)
             elif type(x) == bool:
+                # Pack as bool/char (1 byte)
                 data = data + struct.pack('?',x)
         # Create CAN message
         txMsg = can.Message(arbitration_id=arbitration_id,

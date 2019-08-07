@@ -6,6 +6,8 @@ This program provides a ROS node for accessing the can0 bus interface.
 It connects the locomotion nodes to the ROS network.
 Velocitity and general motor commands are forwarded to the drive nodes.
 Encoder odometry messages are received from the drive nodes and published to the ROS network.
+All variables are converted into the specific units and scaled according to the definition
+given in the can_interface. The commands are derived from the can_protocol.
 
 Subscribed ROS topics:
 *   teleop/lc_switch
@@ -51,14 +53,12 @@ class LocomotionControl(object):
 
     def __init__(self, name):
         # Get ros parameters
-        self.rover_length   = rospy.get_param("/rover_length")
-        self.rover_width    = rospy.get_param("/rover_width")
-        MAX_CUR_B           = rospy.get_param("/max_cur_b")             # Maximal current on battery current sensor [A]
-        MAX_CUR_M           = rospy.get_param("/max_cur_m")             # Maximal current on motor current sensor [A]
-        MAX_VEL             = rospy.get_param("/max_vel")               # Maximal wheel velocity [rad/s]
-        MAX_ORT             = rospy.get_param("/max_ort")               # Maximal wheel orientation [rad]
-
-        self.MAX_RATING     = [MAX_VEL, MAX_ORT, MAX_CUR_B, MAX_CUR_M]  # Maximal parameters for motors and sensors
+        self.rover_length       = rospy.get_param("/rover_length")
+        self.rover_width        = rospy.get_param("/rover_width")
+        self.MAX_VEL            = rospy.get_param("/max_vel")                   # Maximal wheel velocity [rad/s]
+        self.MAX_ORT            = rospy.get_param("/max_ort")                   # Maximal wheel orientation [rad]
+        self.DRIVE_ENC_PPR      = rospy.get_param("/drive_enc_ppr")             # Drive encoder pulses per revolution
+        self.STEER_ENC_PPR      = rospy.get_param("/steer_enc_ppr")             # Steer encoder pulses per revolution
 
         # Switch states
         self.lcInitialised      = False
@@ -71,7 +71,7 @@ class LocomotionControl(object):
         self.wheelAngle         = [self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5]                      # Imposible position for start orientation
 
         # Construct CAN bus interface
-        self.ci = CANInterface(MAX_RATING)
+        self.ci = CANInterface()
 
         # Encoder odometry publisher
         self.encoder_pub = rospy.Publisher("encoder_odometry", EncoderOdometry, queue_size=10)
@@ -79,7 +79,7 @@ class LocomotionControl(object):
         self.switch_sub = rospy.Subscriber("teleop/lc_switch", MoveCommand, self.locomotion_switch, queue_size=10)
 
         # Start ROS publisher for encoder odometry
-        self.timer = rospy.Timer(rospy.Duration(10), self.CAN_subscriber)
+        self.timer = rospy.Timer(rospy.Duration(10), self.encoder_publisher)
 
         # Locomotion control action
         self._action_name = name
@@ -89,8 +89,8 @@ class LocomotionControl(object):
 
     def locomotion_switch(self, data):
         """
-        Callback for locomotion switches for turning on steer and drive motor/PID control
-        ,turning on odometry publisher and zeroing encoders
+        Callback for locomotion switches for turning on steer and drive motor/PID control,
+        turning on odometry publisher and zeroing encoders
         :param data: MoveCommand ROS message
         """
         rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
@@ -113,7 +113,35 @@ class LocomotionControl(object):
     def locomotion_control(self, goal):
         """
         Locomotion control action translating rover base movements to individual wheel
-        orientation and velocity commands and forwarding these to the wheel controllers
+        orientation and velocity commands and forwarding these to the wheel controllers.
+        Locomotion control logic:
+        Case 1)
+            * Wheel orientation matches the current state
+            -> Control wheel velocity
+        Case 2)
+            * Wheel orientation differs from current state
+            * Wheel velocity is zero
+            -> Control wheel orientation
+            -> Control wheel velocity
+        Case 3)
+            * Wheel orientation differs from current state
+            * Wheel velocity is not zero
+            -> Set wheel velocity to zero
+            -> Control wheel orientation
+            -> Control wheel velocity
+        Case 4)
+            * Wheel orientation matches the current state
+            * lcError flag is set (previous locomotion command failed)
+            * Wheel velocity is zero
+            -> Case 2)
+        Case 5)
+            * Wheel orientation matches the current state
+            * lcError flag is set (previous locomotion command failed)
+            * Wheel velocity is not zero
+            -> Case 3)
+        The commands are called in the listed order above, each command is only executed
+        if the previous one has been accomplished and feedback has been received from the
+        wheel controllers.
         :param data: MoveControl ROS message
         """
         rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
@@ -125,6 +153,7 @@ class LocomotionControl(object):
         [wheelSpeedNorm, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
         wheelSpeed = [value * self.MAX_VEL for value in wheelSpeedNorm]         # Scale wheel velocity
 
+        # Locomotion control logic
         # Check current locomotion state
         if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
             self.driving = any(wheelSpeed)
@@ -145,6 +174,7 @@ class LocomotionControl(object):
         # Publish the feedback
         self._as.publish_feedback(self._feedback)
         if success:
+            # Clear error flag
             self.lcError = False
             if all(self._feedback.sequence):
                 rospy.loginfo('LC \t %s: Succeeded' % self._action_name)
@@ -156,25 +186,36 @@ class LocomotionControl(object):
             success = False
             rospy.loginfo('LC \t %s: Failed' % self._action_name)
 
+    def check_preempt(self):
+        """
+        Check for preemtion via the action server.
+        """
+        success = True
+        if (self._as.is_preempt_requested() or rospy.is_shutdown()):
+            rospy.loginfo('LC \t %s: Preempted' % self._action_name)
+            self._as.set_preempted()
+            success = False
+        return success
+
     def feedback_wait(self):
         """
         Wait for command completed feedback from all wheel controllers.
         """
+        success = True
         r = rospy.Rate(500)
         # Clear orientation feedback flags
         feedback = [0, 0, 0, 0]
-        while not any(feedback): #TODO change to all
+        while not any(feedback) and success: #TODO change to all
                 try:
+                    # Get incoming command acomplished feedback from can message queue
                     [idx, flag] = self.ci.listener.lcMsgQueue.get(block=False)
                     self.ci.listener.lcMsgQueue.task_done()
+                    # Set feedback flag
                     feedback[idx] = flag
                 except Queue.Empty:
                     r.sleep()
-                    #rospy.loginfo("Message queue empty")
-                if (self._as.is_preempt_requested() or rospy.is_shutdown()):
-                    rospy.loginfo('LC \t %s: Preempted' % self._action_name)
-                    self._as.set_preempted()
-                    break
+                # Check for action preemtion
+                success = self.check_preempt()
         return feedback
 
     def orientation_control(self, wheelAngle):
@@ -190,7 +231,9 @@ class LocomotionControl(object):
         rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel orientation
-            orientation = CANListener.wrap_message_format(wheelAngle[idx]/MAX_ORT)
+            # Convert orientation: rad -> pulses
+            # Shift by a quater rotation that encoder pulses are only positive
+            orientation = int((wheelAngle[idx]/(math.pi/2.0)+1.0)*(self.STEER_ENC_PPR/4.0))
             # Send CAN locomotion command
             rospy.loginfo("LC (out) \t %s wheel \t Orientation: %d" % (wheel, orientation))
             sent = self.ci.send_can_message(orientationCmd[idx], [orientation])
@@ -219,7 +262,8 @@ class LocomotionControl(object):
         rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
         for idx, wheel in enumerate(wheelIndex):
             # Extraxt wheel velocity
-            velocity = CANListener.wrap_message_format(wheelSpeed[idx])
+             # Convert velocity: rad/s -> pulses/s
+            velocity = int(wheelSpeed[idx]/(2.0*math.pi)*self.DRIVE_ENC_PPR)
             # Send CAN locomotion command
             rospy.loginfo("LC (out) \t %s wheel \t Velocity: %d" % (wheel, velocity))
             sent = self.ci.send_can_message(velocityCmd[idx], [velocity])
@@ -235,19 +279,24 @@ class LocomotionControl(object):
             self.wheelSpeed = wheelSpeed
         return success
 
-    # TODO: Adjust encoder feedback !!!!!!!!!!!!!!!!!!
     def get_encoder_odometry(self):
+        """
+        Get encoder feedback from CAN listener and write into odometry ROS message.
+        """
         # Get message values from listener
         msg = EncoderOdometry()
-        msg.drive_pulses = self.ci.listener.pulses
-        msg.drive_revolutions = self.ci.listener.revolutions
-        msg.activity = self.ci.listener.activity[1:5]
-        msg.drive_velocity = [0,0,0,0]
+        msg.steer_pulses        = self.ci.listener.orientation      # Steer motor orientation [pulses]
+        msg.drive_pulses        = self.ci.listener.pulses           # Drive motor orientation [pulses]
+        msg.drive_revolutions   = self.ci.listener.revolutions      # Drive motor revolutions
+        msg.drive_velocity      = self.ci.listener.velocity         # Drive motor velocity [pulses/s]
+        msg.steer_velocity      = [None, None, None, None]          # Steer motor velocity TODO: Not part of wheel controller feedback
+        msg.activity            = self.ci.listener.activity[1:5]    # Wheel controller node activity
         return msg
 
 
     def scale_feedback_values(value, type):
         """
+        Scale normed values from messages to their maximal value.
         - type == 0: Max Orientation
         - type == 1: Max Velocity
         - type == 2: Max Current Battery
@@ -257,22 +306,28 @@ class LocomotionControl(object):
         return value
 
 
-    def CAN_subscriber(self, event):
+    def encoder_publisher(self, event):
+        """
+        Publisher for encoder feedback from CAN listener class.
+        Regularly publishes encoder values to the ROS system.
+        initialises wheel controllers and checks for their activity
+        via their publish rate.
+        """
         # Check if nodes are initialised
         if self.lcInitialised:
-            # Check for node failure
+            # Check for node activity/failure
             if any(self.ci.listener.activity[1:5]) == 0:
                 rospy.loginfo("LC \t Error CAN Drive node died")
                 rospy.loginfo(' '.join(map(str, self.ci.listener.activity[1:5])))
             # Publish odometry message
             msg = self.get_encoder_odometry() # IMU data message
             self.encoder_pub.publish(msg)
-                    # Check for node activity
         else:
+            # Initialise wheel controllers
             rospy.loginfo("LC \t Initialise CAN Drive nodes")
             self.lcInitialised = True
             self.drive_node_initialise()
-        # Set node activity in listener
+        # Reset node activity in listener
         for idx in range (1,5):
             self.ci.listener.activity[idx] = 0
 

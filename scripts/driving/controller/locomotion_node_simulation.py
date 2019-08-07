@@ -140,7 +140,38 @@ class LocomotionSimulation(object):
     def locomotion_control(self, goal):
         """
         Locomotion control action translating rover base movements to individual wheel
-        orientation and velocity commands and forwarding these to the wheel controllers
+        orientation and velocity commands and forwarding these to the wheel controllers.
+        Locomotion control logic:
+        Case 1)
+            * Wheel orientation matches the current state
+            -> Control wheel velocity
+        Case 2)
+            * Wheel orientation differs from current state
+            * Wheel velocity is zero
+            -> Control wheel orientation
+            -> Control wheel velocity
+        Case 3)
+            * Wheel orientation differs from current state
+            * Wheel velocity is not zero
+            -> Set wheel velocity to zero
+            -> Control wheel orientation
+            -> Control wheel velocity
+        Case 4)
+            * Wheel orientation matches the current state
+            * lcError flag is set (previous locomotion command failed)
+            * Wheel velocity is zero
+            -> Case 2)
+        Case 5)
+            * Wheel orientation matches the current state
+            * lcError flag is set (previous locomotion command failed)
+            * Wheel velocity is not zero
+            -> Case 3)
+        The commands are called in the listed order above, each command is only executed
+        if the previous one has been accomplished and feedback has been received from the
+        wheel controllers.
+
+        The steerMode and driveMode flags allow or prevent commands being sent to the motor
+        controllers.
         :param data: MoveControl ROS message
         """
         if not self.lcInitialised:
@@ -162,6 +193,8 @@ class LocomotionSimulation(object):
             # Convert velocity twist messages to individual wheel velocity and orientation
             [wheelSpeedNorm, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
             wheelSpeed = [value * self.MAX_VEL for value in wheelSpeedNorm]			# Scale wheel velocity
+
+            # Locomotion control logic
             # Check current locomotion state
             if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
                 self.driving = any(wheelSpeed)
@@ -189,6 +222,7 @@ class LocomotionSimulation(object):
         # Publish the feedback
         self._as.publish_feedback(self._feedback)
         if success:
+            # Clear error flag
             self.lcError = False
             if all(self._feedback.sequence):
                 rospy.loginfo('LC \t %s: Succeeded' % self._action_name)

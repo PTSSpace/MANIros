@@ -1,6 +1,6 @@
 """
 This header provides variables for a rudamentary CAN protocol.
-All messages are bounded to 8 bytes and subdivided into either 1 bit values for boleans
+All messages are bounded to 8 bytes and subdivided into either 1 byte values for boleans
 or 2 byte values for signed integers.
 
 All booleans represent state switch information. All integer values passed to or received
