@@ -149,9 +149,9 @@ class LocomotionSimulation(object):
             # Initialise ROS nodes
             rospy.loginfo("LC \t Initialise Simulation Drive nodes")
             self.drive_node_initialise()
-            self.lcInitialised = True
             success = self.lcSwitchSuccess
             if success:
+                self.lcInitialised = True
                 self._feedback.sequence = [0, 1, 2, 3]
         else:
             rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
