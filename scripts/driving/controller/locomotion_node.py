@@ -68,7 +68,7 @@ class LocomotionControl(object):
         self.driving            = False
         self.lcError            = False
         self.wheelSpeed         = [0, 0, 0, 0]
-        self.wheelAngle         = [MAX_ORT, MAX_ORT, MAX_ORT, MAX_ORT]
+        self.wheelAngle         = [self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5]                      # Imposible position for start orientation
 
         # Construct CAN bus interface
         self.ci = CANInterface(MAX_RATING)
@@ -87,10 +87,12 @@ class LocomotionControl(object):
         self._as.start()
 
 
-
-
     def locomotion_switch(self, data):
-        # Locomotion commands subscriber callback
+        """
+        Callback for locomotion switches for turning on steer and drive motor/PID control
+        ,turning on odometry publisher and zeroing encoders
+        :param data: MoveCommand ROS message
+        """
         rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
         if (data.DrivePower or data.SteerPower or data.Publisher or data.ZeroEncoders):
             # Toggle driving and steering switches
@@ -109,12 +111,19 @@ class LocomotionControl(object):
                 self.ci.send_can_message(switchCmd[idx], [self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders])
 
     def locomotion_control(self, goal):
+        """
+        Locomotion control action translating rover base movements to individual wheel
+        orientation and velocity commands and forwarding these to the wheel controllers
+        :param data: MoveControl ROS message
+        """
+        rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
         # Append message CAN bus message feedback
         self._feedback.sequence = []
+        success = False
 
-        rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
         # Convert velocity twist messages to individual wheel velocity and orientation
-        [wheelSpeed, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
+        [wheelSpeedNorm, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
+        wheelSpeed = [value * self.MAX_VEL for value in wheelSpeedNorm]         # Scale wheel velocity
 
         # Check current locomotion state
         if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
@@ -147,10 +156,10 @@ class LocomotionControl(object):
             success = False
             rospy.loginfo('LC \t %s: Failed' % self._action_name)
 
-
-
     def feedback_wait(self):
-        # Helper variables
+        """
+        Wait for command completed feedback from all wheel controllers.
+        """ 
         r = rospy.Rate(500)
         # Clear orientation feedback flags
         feedback = [0, 0, 0, 0]
@@ -169,6 +178,12 @@ class LocomotionControl(object):
         return feedback
 
     def orientation_control(self, wheelAngle):
+        """
+        Wheel orientation control process. Forwards wheel orientation commands
+        to CAN bus and waits for command completed feedback from wheel controllers.
+        Regularly checks for ROS action preemtion.
+        :param wheelAngle: List of wheel orientations in [rad]
+        """
         success = False
         with self.ci.listener.lcMsgQueue.mutex:         #TODO: change so interrupt handler is not blocked
             self.ci.listener.lcMsgQueue.queue.clear()
@@ -191,6 +206,12 @@ class LocomotionControl(object):
         return success
 
     def velocity_control(self, wheelSpeed):
+        """
+        Wheel velocity control process. Forwards wheel velocity commands
+        to CAN bus and waits for command completed feedback from wheel controllers.
+        Regularly checks for ROS action preemtion.
+        :param wheelSpeed: List of wheel velocities in [rad/s]
+        """
         success = False
         with self.ci.listener.lcMsgQueue.mutex:         #TODO: change so interrupt handler is not blocked
             self.ci.listener.lcMsgQueue.queue.clear()

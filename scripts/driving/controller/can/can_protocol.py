@@ -1,7 +1,19 @@
 """
 This header provides variables for a rudamentary CAN protocol.
-All messages are bounded to 8 bytes therefore the maximal signed value
-is declared as 2147483647.
+All messages are bounded to 8 bytes and subdivided into either 1 bit values for boleans
+or 2 byte values for signed integers.
+
+All booleans represent state switch information. All integer values passed to or received
+from the bus are given in the following formats:
+Electrical Power Supply:
+	* normed values to fit an int16 (current sensor feedback)
+Locomotion Control:
+	* either encoder pulses or pulses per second (encoder velocity or orientation)
+	* counters (drive encoder rotations)
+The maximum value of 32768 for a signed 16 bit integer will not be exeeded due to the limited
+range of the encoders (about 8384 pulses per second) and the limit maximum velocity of the
+motors (about 3 rounds per second). Furthermore the current sensor values will be scaled
+and to int16 which allows for a greater subdivision than the sensors own sensitvity.
 
 Messages with lower numeric values for their ID's have higher priority on the CAN network.
 All message ID's are given in Hexadecimal. To ensure the priority of specified commands,
@@ -24,7 +36,7 @@ ID List:
 Global variables
 """
 # Set CAN protocol parameters
-BITRATE           = 500000                                                          # CAN bus bit rate
+BITRATE           	= 500000                                                     	# CAN bus bit rate
 
 # Message header ID's:
 
@@ -53,4 +65,4 @@ locomotionFb 		= [0x0D1]
 odometryFb			= [0x0E1]
 """
 
-MAX_VALUE        	= 2147483647                                                 	# Maximal signed value for 8 bytes
+MAX_VALUE        	= 32768                                                 		# Maximal signed value for 2 bytes
