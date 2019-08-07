@@ -11,7 +11,9 @@
 
     <node name="encoder_simulation" pkg="maniros" type="encoder_simulation.py" output="screen"/>
 
-    <node name="locomotion_control" pkg="maniros" type="locomotion_node_simulation.py" output="screen"/>
+    <node name="locomotion_control" pkg="maniros" type="locomotion_node_simulation.py" output="screen">
+        <param name="~initialised" type="bool" value="False" />
+    </node>
 
     <node name="joy_node" pkg="joy" type="joy_node" output="screen">
         <param name="dev" type="string" value="/dev/input/js0" />

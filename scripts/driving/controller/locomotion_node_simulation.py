@@ -62,15 +62,15 @@ class LocomotionSimulation(object):
         self.rover_width        = rospy.get_param("/rover_width")       # Rover width [m]
         self.MAX_VEL            = rospy.get_param("/max_vel")           # Maximal wheel velocity [rad/s]
         self.MAX_ORT            = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
+        self.lcInitialised      = rospy.get_param("~initialised")       # Wheel controllers in initialised state
 
         # Switch states
         self.lcSwitchSuccess    = True
-        self.lcInitialised      = False
-        self.driveMode          = False
-        self.steerMode          = False
-        self.driving            = False
+        self.driveMode          = self.lcInitialised
+        self.steerMode          = self.lcInitialised
+        self.driving            = self.lcInitialised
         self.lcError            = False
-        self.publisherMode	    = False
+        self.publisherMode	= self.lcInitialised
         self.wheelSpeed         = [0, 0, 0, 0]
         self.wheelAngle         = [self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5]                      # Imposible position for start orientation
 
