@@ -118,8 +118,10 @@ class LocomotionSimulation(object):
             # TODO: does nothing so far
             if data.Publisher:
                 self.publisherMode = not self.publisherMode
-            if not self.driveMode:
+            if not self.driveMode and self.driving:
                 success = self.velocity_control([0, 0, 0, 0])
+                if success:
+                    self.driving = False
             # Simulate zeroing encoders
             if data.ZeroEncoders and success:
                 success = self.zero_encoders()
@@ -133,7 +135,7 @@ class LocomotionSimulation(object):
         Simulate zeroing of encoders.
         Steer all wheel to end position for hard stop.
         """
-        success = self.orientation_control([self.MAX_ORT, self.MAX_ORT, self.MAX_ORT, self.MAX_ORT], False)
+        success = self.orientation_control([self.MAX_ORT, self.MAX_ORT, self.MAX_ORT, self.MAX_ORT])
         return success
 
 
@@ -254,28 +256,24 @@ class LocomotionSimulation(object):
             success = False
         return success
 
-    def orientation_control(self, wheelAngle, action=True):
+    def orientation_control(self, wheelAngle):
         """
         Wheel orientation control process. Forwards wheel orientation commands
         to simulation joints and waits for command completed feedback from joint states.
         Regularly checks for ROS action preemtion.
         :param wheelAngle: List of wheel orientations in [rad]
-        :param action: Flag if command is derived from the action client
         """
         success = True
         r = rospy.Rate(500)
         # Send console output
-        if action:
-            rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
-        else:
-            rospy.loginfo('LC \t Initialisation: Executing, orientation control')
+        rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
+
         for idx in range(0, len(wheelAngle)):
             # Extraxt and publish wheel velocity
             rospy.loginfo('LC \t %f' % wheelAngle[idx])
             self.ort_pub[idx].publish(Float64(wheelAngle[idx]))
             # Append feedback for action process
-            if action:
-                self._feedback.sequence.append(idx+1)
+            self._feedback.sequence.append(idx+1)
         # Set bounds for orientation feedback deviation
         upperAngle = [0, 0, 0, 0]
         lowerAngle = [0, 0, 0, 0]
@@ -287,8 +285,7 @@ class LocomotionSimulation(object):
         while not exit and success:
             exit = True
             # Check for action preemtion
-            if action:
-                success = self.check_preempt()
+            success = self.check_preempt()
             # Check if orientation command has been accomplished and odometry is within deisred bounds
             for idx in range (0, len(self.wheelAngle)):
                 if ((self.wheelAngle[idx] > upperAngle[idx]) or (self.wheelAngle[idx] <  lowerAngle[idx])):
@@ -297,28 +294,24 @@ class LocomotionSimulation(object):
         rospy.loginfo('LC \t Orientation control success: %d' % success)
         return success
 
-    def velocity_control(self, wheelSpeed, action=True):
+    def velocity_control(self, wheelSpeed):
         """
         Wheel velocity control process. Forwards wheel velocity commands
         to simulation joints and waits for command completed feedback from joint states.
         Regularly checks for ROS action preemtion.
         :param wheelSpeed: List of wheel velocities in [rad/s]
-        :param action: Flag if command is derived from the action client
         """
         success = True
         r = rospy.Rate(500)
         # Send console output
-        if action:
-            rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
-        else:
-            rospy.loginfo('LC \t Initialisation: Executing, velocity control')
+        rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
+
         for idx in range(0, len(wheelSpeed)):
             # Extraxt and publish wheel velocity
             rospy.loginfo('LC \t %f' % wheelSpeed[idx])
             self.vel_pub[idx].publish(Float64(wheelSpeed[idx]))
             # Append feedback for action process
-            if action:
-                self._feedback.sequence.append(idx+1)
+            self._feedback.sequence.append(idx+1)
         # Set bounds for velocity feedback deviation
         upperSpeed = [0, 0, 0, 0]
         lowerSpeed = [0, 0, 0, 0]
@@ -330,8 +323,7 @@ class LocomotionSimulation(object):
         while not exit and success:
             exit = True
             # Check for action preemtion
-            if action:
-                success = self.check_preempt()
+            success = self.check_preempt()
             # Check if velocity command has been accomplished and odometry is within deisred bounds
             for idx in range (0, len(self.wheelSpeed)):
                 if ((self.wheelSpeed[idx] > upperSpeed[idx]) or (self.wheelSpeed[idx] <  lowerSpeed[idx])):
