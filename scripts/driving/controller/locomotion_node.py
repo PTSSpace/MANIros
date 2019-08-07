@@ -159,7 +159,7 @@ class LocomotionControl(object):
     def feedback_wait(self):
         """
         Wait for command completed feedback from all wheel controllers.
-        """ 
+        """
         r = rospy.Rate(500)
         # Clear orientation feedback flags
         feedback = [0, 0, 0, 0]
@@ -196,6 +196,7 @@ class LocomotionControl(object):
             sent = self.ci.send_can_message(orientationCmd[idx], [orientation])
             self._feedback.sequence.append(sent)
 
+        # Check if orientation command has been accomplished
         rospy.loginfo('LC \t %s: Waiting for orientation feedback' % (self._action_name))
         feedback = self.feedback_wait()
         self._feedback.sequence = self._feedback.sequence + feedback
@@ -224,6 +225,7 @@ class LocomotionControl(object):
             sent = self.ci.send_can_message(velocityCmd[idx], [velocity])
             self._feedback.sequence.append(sent)
 
+        # Check if velocity command has been accomplished
         rospy.loginfo('LC \t %s: Waiting for velocity feedback' % (self._action_name))
         feedback = self.feedback_wait()
         self._feedback.sequence = self._feedback.sequence + feedback
@@ -275,6 +277,11 @@ class LocomotionControl(object):
             self.ci.listener.activity[idx] = 0
 
     def drive_node_initialise(self):
+        """
+        Initialisation message for rover.
+        Turns all motor control states and odometry publisher on
+        and zeroes encoders.
+        """
         # Initialise all driving nodes
         initMsg = MoveCommand()                                 # Initialisation message
         initMsg.SteerPower = True
@@ -285,6 +292,10 @@ class LocomotionControl(object):
         self.locomotion_switch(initMsg)
 
     def shutdown(self):
+        """
+        Shutdown procedure for ROS node.
+        Stops timer and can listener interface.
+        """
         # Cancel publisher
         self.timer.shutdown()
         # Cancel CAN listener

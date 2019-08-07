@@ -32,8 +32,8 @@ import math
 
 # Import ROS messages
 from std_msgs.msg import Float64
-from sensor_msgs.msg import JointState
-from maniros.msg import MoveCommand                                                 # Locomotion control switches
+from sensor_msgs.msg import JointState                                  # Simulation joint states
+from maniros.msg import MoveCommand                                     # Locomotion control switches
 # Locomotion control action
 from maniros.msg import LocomotionAction
 from maniros.msg import LocomotionFeedback
@@ -64,12 +64,13 @@ class LocomotionSimulation(object):
         self.MAX_ORT            = rospy.get_param("/max_ort")           # Maximal wheel orientation [rad]
 
         # Switch states
+        self.lcSwitchSuccess    = True
         self.lcInitialised      = False
-        self.driveMode          = True
-        self.steerMode          = True
+        self.driveMode          = False
+        self.steerMode          = False
         self.driving            = False
         self.lcError            = False
-        self.publisherMode	= False
+        self.publisherMode	    = False
         self.wheelSpeed         = [0, 0, 0, 0]
         self.wheelAngle         = [self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5, self.MAX_ORT*5]                      # Imposible position for start orientation
 
@@ -94,11 +95,6 @@ class LocomotionSimulation(object):
         self._action_name = name
         self._as = actionlib.SimpleActionServer(self._action_name, LocomotionAction, execute_cb=self.locomotion_control, auto_start = False)
 
-        # Initialise ROS nodes
-        rospy.loginfo("LC \t Initialise Simulation Drive nodes")
-#        self.drive_node_initialise()
-        self.lcInitialised = True
-
         # Start locomotion control action
         self._as.start()
 
@@ -111,6 +107,8 @@ class LocomotionSimulation(object):
         """
         rospy.loginfo("LC (in) \t Steer:%d \t Drive:%d \t Publisher:%d \t ZeroEncoders:%d" % (data.SteerPower, data.DrivePower, data.Publisher, data.ZeroEncoders))
         if (data.DrivePower or data.SteerPower or data.Publisher or data.ZeroEncoders):
+            self.lcSwitchSuccess = False
+            success = True
             # Toggle driving and steering switches
             if data.DrivePower:
                 self.steerMode = not self.steerMode
@@ -120,20 +118,23 @@ class LocomotionSimulation(object):
             # TODO: does nothing so far
             if data.Publisher:
                 self.publisherMode = not self.publisherMode
+            if not self.driveMode:
+                success = self.velocity_control([0, 0, 0, 0])
             # Simulate zeroing encoders
-            self.zero_encoders()
+            if data.ZeroEncoders and success:
+                success = self.zero_encoders()
             # Publish locomotion command
             rospy.loginfo("LC (out) \t Steer:%d \t Drive:%d \t Publisher:%d \t Zero:%d"
             % (self.steerMode, self.driveMode, self.publisherMode, data.ZeroEncoders))
-            if not self.driveMode:
-                success = self.velocity_control([0, 0, 0, 0])
+            self.lcSwitchSuccess = success
 
     def zero_encoders(self):
         """
         Simulate zeroing of encoders.
         Steer all wheel to end position for hard stop.
         """
-        self.orientation_control([self.MAX_ORT, self.MAX_ORT, self.MAX_ORT, self.MAX_ORT])
+        success = self.orientation_control([self.MAX_ORT, self.MAX_ORT, self.MAX_ORT, self.MAX_ORT], False)
+        return success
 
 
     def locomotion_control(self, goal):
@@ -142,37 +143,48 @@ class LocomotionSimulation(object):
         orientation and velocity commands and forwarding these to the wheel controllers
         :param data: MoveControl ROS message
         """
-        rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
-        # Append message simulation joint feedback
-        self._feedback.sequence = []
-        success = False
-
-        # Convert velocity twist messages to individual wheel velocity and orientation
-        [wheelSpeedNorm, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
-        wheelSpeed = [value * self.MAX_VEL for value in wheelSpeedNorm]			# Scale wheel velocity
-        # Check current locomotion state
-        if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
-            self.driving = any(wheelSpeed)
-            if self.driveMode:
-                success = self.velocity_control(wheelSpeed)
+        if not self.lcInitialised:
+            # Append message simulation joint feedback
+            self._feedback.sequence = []
+            # Initialise ROS nodes
+            rospy.loginfo("LC \t Initialise Simulation Drive nodes")
+            self.drive_node_initialise()
+            self.lcInitialised = True
+            success = self.lcSwitchSuccess
+            if success:
+                self._feedback.sequence = [0, 1, 2, 3]
         else:
-            if self.driving:
-                # Stop before executing new steering comand
-                if self.driveMode:
-                    success = self.velocity_control([0, 0, 0, 0])
-                if success:
-                    success = False
-                    self.driving = False
-                    if self.steerMode:
-                        success = self.orientation_control(wheelAngle)
-            else:
-                if self.steerMode:
-                    success = self.orientation_control(wheelAngle)
-            if (success and not (wheelSpeed == [0, 0, 0, 0])):
-                success = False
-                self.driving = True
+            rospy.loginfo("LC (in) \t x:%f \t y:%f \t rot:%f - translating..." % (goal.command.x, goal.command.y, goal.command.rz))
+            # Append message simulation joint feedback
+            self._feedback.sequence = []
+            success = False
+
+            # Convert velocity twist messages to individual wheel velocity and orientation
+            [wheelSpeedNorm, wheelAngle] = VectorTranslation(self.rover_length, self.rover_width).translateMoveControl(goal.command)
+            wheelSpeed = [value * self.MAX_VEL for value in wheelSpeedNorm]			# Scale wheel velocity
+            # Check current locomotion state
+            if ((wheelAngle == self.wheelAngle) and not self.lcError and not(wheelSpeed == self.wheelSpeed)):
+                self.driving = any(wheelSpeed)
                 if self.driveMode:
                     success = self.velocity_control(wheelSpeed)
+            else:
+                if self.driving:
+                    # Stop before executing new steering comand
+                    if self.driveMode:
+                        success = self.velocity_control([0, 0, 0, 0])
+                    if success:
+                        success = False
+                        self.driving = False
+                        if self.steerMode:
+                            success = self.orientation_control(wheelAngle)
+                else:
+                    if self.steerMode:
+                        success = self.orientation_control(wheelAngle)
+                if (success and not (wheelSpeed == [0, 0, 0, 0])):
+                    success = False
+                    self.driving = True
+                    if self.driveMode:
+                        success = self.velocity_control(wheelSpeed)
 
         # Publish the feedback
         self._as.publish_feedback(self._feedback)
@@ -188,11 +200,19 @@ class LocomotionSimulation(object):
             rospy.loginfo('LC \t %s: Failed' % self._action_name)
 
     def get_joint_states(self, data):
+        """
+        Joint state subscriber callback.
+        Write joint orientation and velocity into wheel state variables.
+        :param data: JointState ROS message
+        """
         # Get joint state values from simulation
         self.wheelAngle = data.position[6:10]
         self.wheelSpeed = data.velocity[2:6]
 
     def check_preempt(self):
+        """
+        Check for preemtion via the action server.
+        """
         success = True
         if (self._as.is_preempt_requested() or rospy.is_shutdown()):
             rospy.loginfo('LC \t %s: Preempted' % self._action_name)
@@ -200,31 +220,42 @@ class LocomotionSimulation(object):
             success = False
         return success
 
-    def orientation_control(self, wheelAngle):
+    def orientation_control(self, wheelAngle, action=True):
         """
         Wheel orientation control process. Forwards wheel orientation commands
         to simulation joints and waits for command completed feedback from joint states.
         Regularly checks for ROS action preemtion.
         :param wheelAngle: List of wheel orientations in [rad]
+        :param action: Flag if command is derived from the action client
         """
         success = True
         r = rospy.Rate(500)
-        rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
+        # Send console output
+        if action:
+            rospy.loginfo('LC \t %s: Executing, orientation control' % (self._action_name))
+        else:
+            rospy.loginfo('LC \t Initialisation: Executing, orientation control')
         for idx in range(0, len(wheelAngle)):
             # Extraxt and publish wheel velocity
             rospy.loginfo('LC \t %f' % wheelAngle[idx])
             self.ort_pub[idx].publish(Float64(wheelAngle[idx]))
-            self._feedback.sequence.append(idx+1)
-        # Check locomotion state
+            # Append feedback for action process
+            if action:
+                self._feedback.sequence.append(idx+1)
+        # Set bounds for orientation feedback deviation
         upperAngle = [0, 0, 0, 0]
         lowerAngle = [0, 0, 0, 0]
         for idx, value in enumerate(wheelAngle):
             upperAngle[idx] = value + 10*self.tollerance
             lowerAngle[idx] = value - 10*self.tollerance
         exit = False
+        # Check wheel orientation
         while not exit and success:
             exit = True
-            success = self.check_preempt()
+            # Check for action preemtion
+            if action:
+                success = self.check_preempt()
+            # Check if orientation command has been accomplished and odometry is within deisred bounds
             for idx in range (0, len(self.wheelAngle)):
                 if ((self.wheelAngle[idx] > upperAngle[idx]) or (self.wheelAngle[idx] <  lowerAngle[idx])):
                     exit = False
@@ -232,31 +263,42 @@ class LocomotionSimulation(object):
         rospy.loginfo('LC \t Orientation control success: %d' % success)
         return success
 
-    def velocity_control(self, wheelSpeed):
+    def velocity_control(self, wheelSpeed, action=True):
         """
         Wheel velocity control process. Forwards wheel velocity commands
         to simulation joints and waits for command completed feedback from joint states.
         Regularly checks for ROS action preemtion.
         :param wheelSpeed: List of wheel velocities in [rad/s]
+        :param action: Flag if command is derived from the action client
         """
         success = True
         r = rospy.Rate(500)
-        rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
+        # Send console output
+        if action:
+            rospy.loginfo('LC \t %s: Executing, velocity control' % (self._action_name))
+        else:
+            rospy.loginfo('LC \t Initialisation: Executing, velocity control')
         for idx in range(0, len(wheelSpeed)):
             # Extraxt and publish wheel velocity
             rospy.loginfo('LC \t %f' % wheelSpeed[idx])
             self.vel_pub[idx].publish(Float64(wheelSpeed[idx]))
-            self._feedback.sequence.append(idx+1)
-        # Check locomotion state
+            # Append feedback for action process
+            if action:
+                self._feedback.sequence.append(idx+1)
+        # Set bounds for velocity feedback deviation
         upperSpeed = [0, 0, 0, 0]
         lowerSpeed = [0, 0, 0, 0]
         for idx, value in enumerate(wheelSpeed):
             upperSpeed[idx] = value + self.tollerance
             lowerSpeed[idx] = value - self.tollerance
         exit = False
+        # Check wheel velocities
         while not exit and success:
             exit = True
-            success = self.check_preempt()
+            # Check for action preemtion
+            if action:
+                success = self.check_preempt()
+            # Check if velocity command has been accomplished and odometry is within deisred bounds
             for idx in range (0, len(self.wheelSpeed)):
                 if ((self.wheelSpeed[idx] > upperSpeed[idx]) or (self.wheelSpeed[idx] <  lowerSpeed[idx])):
                     exit = False
@@ -265,6 +307,11 @@ class LocomotionSimulation(object):
         return success
 
     def drive_node_initialise(self):
+        """
+        Initialisation message for rover.
+        Turns all motor control states and odometry publisher on
+        and zeroes encoders.
+        """
         # Initialise all driving nodes
         initMsg = MoveCommand()                                 # Initialisation message
         initMsg.SteerPower = True
@@ -275,6 +322,9 @@ class LocomotionSimulation(object):
         self.locomotion_switch(initMsg)
 
     def shutdown(self):
+        """
+        Shutdown procedure for ROS node.
+        """
         rospy.loginfo("LC \t Shutting down locomotion node")
 
 """
