@@ -31,6 +31,7 @@ class EncoderSimTest(unittest.TestCase):
                 self.drive_velocity     = data.drive_velocity
                 self.steer_pulses       = data.steer_pulses
                 self.steer_velocity     = data.steer_velocity
+                self.activity           = data.activity
                 self.success            = True
 
         def test_basic_function(self):

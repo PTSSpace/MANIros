@@ -38,6 +38,7 @@ class EncoderSimulation():
 		# Define working variables
 		self.jointVelocity         = [0, 0, 0, 0, 0, 0, 0, 0]					# [rad/s]
 		self.jointPosition         = [0, 0, 0, 0, 0, 0, 0, 0]					# [rad]
+                self.activity              = [False, False, False, False]                               # Wheel joint node activity
 
 		# Joint velocity and orientation subscriber
 		rospy.Subscriber("/manisim/joint_states", JointState, self.get_joint_states, queue_size=10)
@@ -49,6 +50,7 @@ class EncoderSimulation():
 		# Get joint state values from simulation
                 self.jointPosition = data.position[2:10]
                 self.jointVelocity = data.velocity[2:10]
+                self.activity      = [True, True, True, True]
 
 	def encoder_simulation_publisher(self, event):
 		msg = EncoderOdometry()
@@ -57,6 +59,8 @@ class EncoderSimulation():
 			msg.drive_velocity[i] 							= self.drive_encoder_velocity(self.jointVelocity[i])
 			msg.steer_pulses[i] 							= self.steer_encoder_position(self.jointPosition[i+4])
 			msg.steer_velocity[i] 							= self.steer_encoder_velocity(self.jointVelocity[i+4])
+                        msg.activity[i]                                                         = self.activity[i]
+                        self.activity[i]                                                        = False
 		self.enc_pub.publish(msg)
 
 	def drive_encoder_position(self, drivePosition):
