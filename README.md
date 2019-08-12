@@ -60,15 +60,19 @@ Each command further has its own indentifier number to indicate which node it is
 | powerFb | 0x030 | Motor power switch status feedback | EPS Node | OBC | 1 byte | motorPower \[0,1\] (byte 1) |
 | currentFb | 0x0E0 | EPS current meassurement feedback/update | EPS Node| OBC | 8 bytes | sensorIdx \[0,3\] (bytes 1 to 4) current \[0..2147483647\] (bytes 5 to 8) |
 | switchCmd | 0x0AX | Switch command for steering/driving motor power and initialisation for odometry publisher and zeroing steering encoders | OBC| Drive Node | 4 bytes | steerMode \[0,1\] (byte 1) driveMode \[0,1\] (byte 2) publisherMode \[0,1\] (byte 3) zeroEncoders \[0,1\] (byte 4) |
-| orientationCmd | 0x0BX | Set orientation command | OBC| Drive Node | 4 bytes | set_orientation \[-2147483647..2147483647\] (bytes 1 to 4) |
-| velocityCmd | 0x0CX | Set velocity command | OBC| Drive Node | 4 bytes | set_velocity \[-2147483647..2147483647\] (bytes 1 to 4) |
-| locomotionFb | 0x0DX | Locomotion task feedback for reached orientation and velocity | Drive Node | OBC | 1 bytes | task_completed (byte 1) [0,1]|
-| odometryFb | 0x0EX | Odometry feedback of absolute encoder counts for rover distance traveled | Drive Node | OBC | 8 bytes | pulses \[-2147483647..2147483647\] (bytes 1 to 4) revolutions \[-2147483647..2147483647\] (bytes 5 to 8) |
+| orientationCmd | 0x0BX | Set orientation command | OBC| Drive Node | 4 bytes | set_orientation \[-32768..32768\] (bytes 1 to 2) |
+| velocityCmd | 0x0CX | Set velocity command | OBC| Drive Node | 4 bytes | set_velocity \[-32768..32768\] (bytes 1 to 2) |
+| locomotionFb | 0x0DX | Locomotion task feedback for reached orientation and velocity | Drive Node | OBC | 1 byte | task_completed_flag (byte 1) [0,1]|
+| odometryFb | 0x0EX | Odometry feedback of encoder counts and revolutions for rover distance traveled as well as steering position and drive velocity in encoder pulses | Drive Node | OBC | 8 bytes | pulses \[-32768..32768\] (bytes 1 to 2) revolutions \[-32768..32768\] (bytes 3 to 4) orientation \[-32768..32768\] (bytes 5 to 6) velocity \[-32768..32768\] (bytes 7 to 8) |
 
-**The velocity and orientation are scaled values based on the maximal velocity and orientation, respectively.**
+**The orientation and velocity are handled in pulses or pulses per second, respectively. They depend on the nomber of pulses per revolution for the encoders used (STEER_ENC_PPR, DRIVE_ENC_PPR).**
 
 ## ROS Nodes
 
 The ROS nodes for the teleoperation branch is visualised below in rqt_graph for the Gazeebo simmulation example:
 
 <img src="MANI_Teleoperation_Simulation_rqt_graph.png" width="800">
+
+### ROS Parameters
+
+The main hardware specific parameters such as rover dimensions, sensor positions, encoder pulses per revolution can be set in the /config/mani.yaml file. They are imported to the ros nodes from this location.
