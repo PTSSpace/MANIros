@@ -44,8 +44,8 @@ BITRATE           	= 500000                                                     
 powerCmd            = [0x000]                                                       # Motor power on/off command
 errorWrn            = [0x010]                                                       # Sensor overcurrent warning (fault line latched low)
 currentWrn          = [0x020]                                                       # Critical current warning (80 percent of max current)
-powerFd            	= [0x030]                                                       # Motor power status feedback/update
-currentFd          	= [0x0E0]                                                       # Feedback from current sensors
+powerFb            	= [0x030]                                                       # Motor power status feedback/update
+currentFb          	= [0x0E0]                                                       # Feedback from current sensors
 currentSensorIndex	= ['battery','front_left', 'rear_left', 'rear_right', 'front_right']
 
 # Locomotion Control (LC)

@@ -27,9 +27,9 @@ import threading
 import Queue
 
 # Import CAN protocol parameters
-from can.can_protocol import *
+from can_bus.can_protocol import *
 # Import CAN interface
-from can_interface import CANInterface
+from can_bus.can_interface import CANInterface
 
 # Import ROS messages
 from maniros.msg import MoveCommand                                                 # Locomotion control switches

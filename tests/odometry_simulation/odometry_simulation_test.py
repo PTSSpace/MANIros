@@ -10,7 +10,6 @@ import time
 import tf2_ros
 from gazebo_msgs.msg import ModelStates
 from nav_msgs.msg import Odometry
-from maniros.msg import EncoderOdometry
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 import tf_conversions
 

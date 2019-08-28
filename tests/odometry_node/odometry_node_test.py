@@ -80,6 +80,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [0, 0, 0, 0]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
         while not rospy.is_shutdown() and not success and time.time() < timeout_t:
@@ -101,6 +102,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [0, 0, 0, 0]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         timeout_t = time.time() + 10.0  # 10 s
         rate = rospy.Rate(10)           # 10 Hz
         self.success = False
@@ -117,6 +119,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [100, 100, 100, 100]                           # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -142,6 +145,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [0, 0, 0, 0]                                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -167,6 +171,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [-1, -1, 1, 1]                                 # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [-1000, -1000, 1000, 1000]                     # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -198,6 +203,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [1, 1, 1, 1]                                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Correct odometry output
         v = math.pi*self.wheel_diameter
         v = self.roundValue(v)
@@ -230,6 +236,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [r_enc, r_enc, r_enc, r_enc]                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -260,6 +267,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [r_enc, r_enc, r_enc, r_enc]                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -289,6 +297,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [r_enc, r_enc, r_enc, r_enc]                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
@@ -319,6 +328,7 @@ class OdmTest(unittest.TestCase):
         enc_msg.drive_revolutions  = [r_enc, r_enc, r_enc, r_enc]                   # Drive encoder wheel revolutions
         enc_msg.drive_velocity     = [v_enc, v_enc, v_enc, v_enc]                   # Drive encoder velocity [pulses per second]
         enc_msg.steer_velocity     = [0, 0, 0, 0]                                   # Steer encoder velocity [pulses per second]
+        enc_msg.activity           = [True, True, True, True]                       # Wheel node activity
         # Reset odometry
         if self.reset_odometry():
             # Publish encoder message
