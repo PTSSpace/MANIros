@@ -66,7 +66,7 @@ class VectorTranslation:
         # changed from the intial steering protocol
         # Old: (math.hypot(self.rover_width, self.rover_length)/2)
         # New: (2)
-        self.r_fac = rotation / 2
+        self.r_fac = rotation / 2.0
         self.r_fac_x = self.rover_width * self.r_fac
         self.r_fac_y = self.rover_length * self.r_fac
 
@@ -89,7 +89,7 @@ class VectorTranslation:
             length = math.hypot(x_calc, y_calc)
 
             # reverse direction and adjust angle to not eceed rotation limits
-            if (math.fabs(angle) > (math.pi / 2)):
+            if (math.fabs(angle) > (math.pi / 2.0)):
 				angle -= math.copysign(math.pi, angle)
 				length *= -1
 
