@@ -140,7 +140,6 @@ The __PicoFlexx ROS node__ is setup as follows:
 
 
 * Download the [royale driver software](https://pmdtec.com/picofamily/software-download/).
-        The password for the download is: Sh!2CBpf.
 * Follow the instructions on the [PicoFlexx ROS driver git](https://github.com/code-iai/pico_flexx_driver).
         _In point 9 of the install, start rviz with "rosrun rviz rviz -f pico_flex_link", otherwise you'll get an error._
 * Then configure rviz:
