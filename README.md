@@ -12,7 +12,7 @@ The Rover coordinate system and indexing is displayed in the following image:
 
 Development is done on topic branches, if you work on a new feature create your own branch and start working. After your
 done create a pull request against the `develop` branch. If all tests complete successfully, and there are additional
-ones for new features, it can be reviewed and merged into master.
+ones for new features, it can be reviewed and merged into `master`.
 
 ## Software Environment
 
@@ -21,7 +21,7 @@ By means of continuous integration the [MANIros git](https://github.com/PTScient
 
 ## ROS
 
-[Wikipedia's Definition](https://en.wikipedia.org/wiki/Robot_Operating_System) _July 24th 2019, 15:57 CET
+[Wikipedia's Definition](https://en.wikipedia.org/wiki/Robot_Operating_System) _July 24th 2019, 15:57 CET_
 
 > Robot Operating System (ROS or ros) is robotics middleware (i.e. collection of software frameworks for robot software development). Although ROS is not an operating system, it provides services designed for a heterogeneous computer cluster such as hardware abstraction, low-level device control, implementation of commonly used functionality, message-passing between processes, and package management.
 
@@ -43,10 +43,10 @@ So far the following nodes have been implemented and/or installed:
  - joy node - transforms joystick input to a ROS Joy message
  - teleop node - passes on selected joystick input to ROS LC messages
  - cmd_vel node - muxer for autonomous and teleoperation commands and client for rover movement actions
- - locomotion_control action - action server for sending locomotion control via CAN bus 
+ - locomotion_control action - action server for sending locomotion control via CAN bus
  - locomotion_control_simulation action - action server for sending locomotion control via simulation
  - odometry publisher - transforms encoder feedback to rover odometry
- - encoder simulation - simjulates encoder feedback by transforming joints states from simulation 
+ - encoder simulation - simjulates encoder feedback by transforming joints states from simulation
 * Sensors
  - IMU publisher - publishes IMU data
  - IMU transform - coordinate system transformation from IMU to rover base
@@ -106,7 +106,7 @@ Installing the __ZED Cam ROS node__:
         $ sudo apt-get update
         $ sudo apt-get install cuda-10.0
         ```
-        
+
 * After the Cuda installtion download \chref{https://www.stereolabs.com/developers/release/#sdkdownloads_anchor}{SDK}.
 
 * Install SDK.
@@ -117,7 +117,7 @@ Installing the __ZED Cam ROS node__:
         $ sudo apt-key add /var/cuda-repo-10-0-local-10.0.130-410.48/7fa2af80.pub
         $ ./ZED_SDK_Ubuntu16_v2.8.2.run
         ```
-        
+
 * Install the [ZED ROS wrapper](https://github.com/stereolabs/zed-ros-wrapper.git).
 		```
         $ cd ~/catkin_ws/src
@@ -126,7 +126,7 @@ Installing the __ZED Cam ROS node__:
         $ catkin_make
         $ source ./devel/setup.bash
         ```
-        
+
 * Test the installation through zed.launch file.
 		```
         $ roslaunch zed_wrapped zed.launch
@@ -144,11 +144,11 @@ The __PicoFlexx ROS node__ is setup as follows:
 * Follow the instructions on the [PicoFlexx ROS driver git](https://github.com/code-iai/pico_flexx_driver).
         _In point 9 of the install, start rviz with "rosrun rviz rviz -f pico_flex_link", otherwise you'll get an error._
 * Then configure rviz:
-    
+
  - Fixed Frame: royale_camera_link
  - Add new → PointCloud2
  - Select royale topic
-    
+
 
 ## CAN Bus
 The CAN interface is set to **can0** but may be set to **can1** if desired.
